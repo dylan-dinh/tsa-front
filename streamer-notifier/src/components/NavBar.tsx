@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, styled } from '@mui/material';
+import { useAuth } from '../context/AuthContext'; // Import the AuthContext
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: '#24292e',
@@ -21,43 +22,26 @@ const StyledButton = styled('button')(({ theme }) => ({
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const checkLoginStatus = () => {
-      const token = localStorage.getItem('token');
-      setIsLoggedIn(!!token);
-    };
-
-    checkLoginStatus();
-    window.addEventListener('storage', checkLoginStatus);
-
-    return () => {
-      window.removeEventListener('storage', checkLoginStatus);
-    };
-  }, []);
+  const { isAuthenticated, logout } = useAuth(); // Use AuthContext
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    setIsLoggedIn(false);
+    logout(); // Call logout from AuthContext
     navigate('/login');
   };
 
   return (
     <StyledAppBar position="static">
       <Toolbar>
-        <StyledButton onClick={() => navigate('/')}>Home</StyledButton>
-        {isLoggedIn && (
+        {isAuthenticated && (
           <StyledButton onClick={() => navigate('/dashboard')}>Dashboard</StyledButton>
         )}
-        {!isLoggedIn && (
+        {!isAuthenticated && (
           <>
             <StyledButton onClick={() => navigate('/login')}>Login</StyledButton>
             <StyledButton onClick={() => navigate('/register')}>Register</StyledButton>
           </>
         )}
-        {isLoggedIn && (
+        {isAuthenticated && (
           <StyledButton onClick={handleLogout}>Logout</StyledButton>
         )}
       </Toolbar>
