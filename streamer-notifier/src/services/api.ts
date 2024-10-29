@@ -2,8 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 import { RegisterResponse, Streamer } from '../types';
 import { User } from '../types/index';
 
-
-const API_URL = 'http://localhost:8080/api';
+const API_URL = process.env.REACT_APP_BACKEND_URL + "/api"
 
 const api = axios.create({
   baseURL: API_URL,
