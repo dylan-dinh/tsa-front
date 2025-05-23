@@ -5,6 +5,7 @@ import React, { Suspense, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
+import SocialAuth from './SocialAuth';
 
 const FcGoogle = React.lazy(() =>
   import('react-icons/fc').then(module => ({ default: module.FcGoogle as React.ComponentType<any> }))
@@ -20,6 +21,8 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
+  const [isTwitchAuthOpen, setIsTwitchAuthOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenRegisterModal = () => {
@@ -33,15 +36,12 @@ const LandingPage: React.FC = () => {
     };
   }, []);
 
-  // Placeholder handlers for authentication
   const handleGoogleSignUp = () => {
-    // TODO: Integrate Google OAuth
-    alert('Google sign up coming soon!');
+    setIsGoogleAuthOpen(true);
   };
 
   const handleTwitchSignUp = () => {
-    // TODO: Integrate Twitch OAuth
-    alert('Twitch sign up coming soon!');
+    setIsTwitchAuthOpen(true);
   };
 
   const handleCreateAccount = () => {
@@ -129,6 +129,16 @@ const LandingPage: React.FC = () => {
       {/* Modals */}
       <Login isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <Register isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} />
+      <SocialAuth 
+        isOpen={isGoogleAuthOpen} 
+        onClose={() => setIsGoogleAuthOpen(false)} 
+        provider="google" 
+      />
+      <SocialAuth 
+        isOpen={isTwitchAuthOpen} 
+        onClose={() => setIsTwitchAuthOpen(false)} 
+        provider="twitch" 
+      />
     </div>
   );
 };
