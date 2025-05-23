@@ -1,3 +1,6 @@
+// Requirements to run this component:
+// npm install react-icons@latest react-router-dom@latest
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
