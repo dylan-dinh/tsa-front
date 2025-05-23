@@ -1,7 +1,7 @@
 // Requirements to run this component:
 // npm install react-icons@latest react-router-dom@latest
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
@@ -20,6 +20,18 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenRegisterModal = () => {
+      setIsRegisterModalOpen(true);
+    };
+
+    window.addEventListener('openRegisterModal', handleOpenRegisterModal);
+
+    return () => {
+      window.removeEventListener('openRegisterModal', handleOpenRegisterModal);
+    };
+  }, []);
 
   // Placeholder handlers for authentication
   const handleGoogleSignUp = () => {

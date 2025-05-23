@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 import { TextField, Button, Snackbar, Alert, IconButton } from '@mui/material';
@@ -7,9 +7,14 @@ import { login as apiLogin } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+const FcGoogle = React.lazy(() =>
+  import('react-icons/fc').then(module => ({ default: module.FcGoogle as React.ComponentType<any> }))
+);
+
+const CLipIt_Logo = process.env.PUBLIC_URL + '/ClipIt_logo.jpeg';
+
 const validationSchema = Yup.object().shape({
     email: Yup.string().email('Invalid email').required('Required'),
-    password: Yup.string().min(6, 'Too Short!').required('Required'),
 });
 
 interface LoginProps {
@@ -27,6 +32,16 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
         setOpenSnackbar(false);
     };
 
+    const handleGoogleSignUp = () => {
+        // TODO: Implement Google OAuth
+        console.log('Google sign up clicked');
+    };
+
+    const handleTwitchSignUp = () => {
+        // TODO: Implement Twitch OAuth
+        console.log('Twitch sign up clicked');
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -40,26 +55,65 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
             {/* Modal */}
             <div className="flex min-h-full items-center justify-center p-4">
                 <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 shadow-xl transition-all">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-semibold text-gray-900">Login</h3>
-                        <IconButton
-                            onClick={onClose}
-                            className="rounded-full hover:bg-gray-100 transition-colors"
-                            size="small"
-                        >
-                            <CloseIcon className="text-gray-500" />
-                        </IconButton>
-                    </div>
+                    {/* Close Button */}
+                    <IconButton
+                        onClick={onClose}
+                        className="absolute top-4 right-4 rounded-full hover:bg-gray-100 transition-colors"
+                        size="small"
+                    >
+                        <CloseIcon className="text-gray-500" />
+                    </IconButton>
 
                     {/* Content */}
-                    <div className="mt-2">
+                    <div className="flex flex-col items-center space-y-6">
+                        {/* Logo */}
+                        <img
+                            src={CLipIt_Logo}
+                            alt="ClipIt Logo"
+                            className="h-12 w-auto object-contain"
+                        />
+
+                        {/* Headline */}
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            Connect to Clip
+                        </h2>
+
+                        {/* Social Sign Up Buttons */}
+                        <div className="w-full space-y-3">
+                            <button
+                                onClick={handleGoogleSignUp}
+                                className="w-full flex items-center justify-center py-3 px-6 rounded-full shadow-lg bg-white border border-gray-200 hover:bg-gray-100 transition font-semibold text-gray-900 text-base gap-2 focus:outline-none"
+                            >
+                                <Suspense fallback={null}>
+                                    <FcGoogle size={22} />
+                                </Suspense>
+                                Sign up with Google
+                            </button>
+                            <button
+                                onClick={handleTwitchSignUp}
+                                className="w-full flex items-center justify-center py-3 px-6 rounded-full shadow-lg bg-white border border-gray-200 hover:bg-gray-100 transition font-semibold text-[#9147ff] text-base gap-2 focus:outline-none"
+                            >
+                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+                                </svg>
+                                Sign up with Twitch
+                            </button>
+                        </div>
+
+                        {/* OR Separator */}
+                        <div className="flex items-center w-full">
+                            <div className="flex-grow h-px bg-gray-200" />
+                            <span className="mx-3 text-gray-400 font-semibold text-sm">OR</span>
+                            <div className="flex-grow h-px bg-gray-200" />
+                        </div>
+
+                        {/* Email Form */}
                         <Formik
-                            initialValues={{ email: '', password: '' }}
+                            initialValues={{ email: '' }}
                             validationSchema={validationSchema}
                             onSubmit={async (values, { setSubmitting }) => {
                                 try {
-                                    const response = await apiLogin(values.email, values.password);
+                                    const response = await apiLogin(values.email, '');
                                     const { token } = response;
 
                                     if (token) {
@@ -80,38 +134,53 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
                             }}
                         >
                             {({ errors, touched, isSubmitting }) => (
-                                <Form className="space-y-4">
+                                <Form className="w-full space-y-4">
                                     <Field
                                         as={TextField}
                                         name="email"
-                                        label="Email"
+                                        placeholder="Phone number or email address"
                                         fullWidth
-                                        margin="normal"
+                                        variant="outlined"
                                         error={touched.email && Boolean(errors.email)}
                                         helperText={touched.email && errors.email}
-                                    />
-                                    <Field
-                                        as={TextField}
-                                        name="password"
-                                        label="Password"
-                                        type="password"
-                                        fullWidth
-                                        margin="normal"
-                                        error={touched.password && Boolean(errors.password)}
-                                        helperText={touched.password && errors.password}
+                                        className="rounded-lg"
                                     />
                                     <Button
                                         type="submit"
                                         fullWidth
                                         variant="contained"
-                                        className="bg-[#9147ff] hover:bg-[#7c3bdb] text-white font-semibold py-2 px-4 rounded-full transition-colors"
+                                        className="bg-[#9147ff] hover:bg-[#7c3bdb] text-white font-semibold py-3 px-4 rounded-full transition-colors"
                                         disabled={isSubmitting}
                                     >
-                                        Sign In
+                                        Next
                                     </Button>
                                 </Form>
                             )}
                         </Formik>
+
+                        {/* Forgot Password */}
+                        <button
+                            onClick={() => {/* TODO: Implement forgot password */}}
+                            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            Forgot password?
+                        </button>
+
+                        {/* Sign Up Link */}
+                        <div className="text-sm text-gray-600">
+                            Not registered yet?{' '}
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    // Open Register modal
+                                    const event = new CustomEvent('openRegisterModal');
+                                    window.dispatchEvent(event);
+                                }}
+                                className="text-[#9147ff] hover:text-[#7c3bdb] font-semibold transition-colors"
+                            >
+                                Sign in
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
