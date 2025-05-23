@@ -1,8 +1,10 @@
 // Requirements to run this component:
 // npm install react-icons@latest react-router-dom@latest
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Login from './Login';
+import Register from './Register';
 
 const FcGoogle = React.lazy(() =>
   import('react-icons/fc').then(module => ({ default: module.FcGoogle as React.ComponentType<any> }))
@@ -16,6 +18,8 @@ const CLipIt_Logo = process.env.PUBLIC_URL + '/ClipIt_logo.jpeg';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   // Placeholder handlers for authentication
   const handleGoogleSignUp = () => {
@@ -29,11 +33,11 @@ const LandingPage: React.FC = () => {
   };
 
   const handleCreateAccount = () => {
-    navigate('/register');
+    setIsRegisterModalOpen(true);
   };
 
   const handleLogin = () => {
-    navigate('/login');
+    setIsLoginModalOpen(true);
   };
 
   return (
@@ -109,6 +113,10 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <Login isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <Register isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} />
     </div>
   );
 };
