@@ -1,5 +1,5 @@
 # Use an official Node runtime as the base image
-FROM node:14
+FROM node:18-alpine
 
 # Set the working directory in the container
 WORKDIR /app
@@ -7,8 +7,10 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with security fixes
+RUN npm install --legacy-peer-deps && \
+    npm audit fix --force && \
+    npm install execa@7.1.1 --save-exact
 
 # Copy the rest of the frontend code
 COPY . .
