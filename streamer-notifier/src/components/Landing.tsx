@@ -28,8 +28,7 @@ const LandingPage: React.FC = () => {
     alert('Twitch sign up coming soon!');
   };
 
-  const handleEmailSignUp = () => {
-    // TODO: Navigate to email registration page
+  const handleCreateAccount = () => {
     navigate('/register');
   };
 
@@ -38,87 +37,73 @@ const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 font-sans">
-      {/* Left: Logo */}
-      <div className="md:w-1/2 flex items-center justify-center bg-white">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white">
+      {/* Left: Logo, always centered and prominent but not too tall */}
+      <div className="md:w-1/2 flex items-center justify-center bg-white px-4 py-8 md:py-0 md:h-screen">
         <img
           src={CLipIt_Logo}
           alt="ClipIt Logo"
-          className="w-64 h-64 object-contain"
-          style={{ minWidth: 200, minHeight: 200 }}
+          className="max-h-44 md:max-h-80 w-auto object-contain"
+          style={{ minWidth: 120, maxWidth: '80%' }}
         />
       </div>
 
-      {/* Right: Auth Panel */}
-      <div className="md:w-1/2 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8 flex flex-col items-center">
-          {/* Catch Line */}
-          <h2 className="text-2xl md:text-3xl font-bold text-[#2ea44f] mb-6 text-center">
+      {/* Right: Centered content block */}
+      <div className="md:w-1/2 flex items-center justify-center bg-white px-6 py-8 md:py-0 md:h-screen">
+        <div className="w-full max-w-md flex flex-col items-center md:items-start justify-center">
+          {/* Headline */}
+          <h1 className="text-3xl md:text-4xl font-extrabold text-black mb-10 text-left w-full leading-tight">
             Share your best. Connect with the rest.
-          </h2>
+          </h1>
 
-          {/* Sign Up Buttons */}
-          <button
-            onClick={handleGoogleSignUp}
-            className="w-full flex items-center justify-center py-3 mb-3 rounded font-semibold text-gray-800 bg-white border border-gray-300 hover:bg-gray-100 transition"
-            style={{ fontFamily: 'inherit' }}
-          >
-            <span style={{ marginRight: '0.5rem', display: 'flex', alignItems: 'center' }}>
+          {/* Sign Up Buttons (stacked, pill-shaped, soft shadow) */}
+          <div className="w-full flex flex-col gap-4 mb-6">
+            <button
+              onClick={handleGoogleSignUp}
+              className="w-full flex items-center justify-center py-3 px-6 rounded-full shadow-lg bg-white border border-gray-200 hover:bg-gray-100 transition font-semibold text-gray-900 text-base gap-2 focus:outline-none"
+              style={{ fontFamily: 'inherit', minHeight: 48 }}
+            >
               <Suspense fallback={null}>
-                <FcGoogle size={24} />
+                <FcGoogle size={22} />
               </Suspense>
-            </span>
-            Continue with Google
-          </button>
-          <button
-            onClick={handleTwitchSignUp}
-            className="w-full flex items-center justify-center py-3 mb-3 rounded font-semibold text-white"
-            style={{
-              backgroundColor: '#9147ff',
-              fontFamily: 'inherit',
-              boxShadow: 'none'
-            }}
-          >
-            <span style={{ marginRight: '0.5rem', display: 'flex', alignItems: 'center' }}>
+              Sign up with Google
+            </button>
+            <button
+              onClick={handleTwitchSignUp}
+              className="w-full flex items-center justify-center py-3 px-6 rounded-full shadow-lg bg-white border border-gray-200 hover:bg-gray-100 transition font-semibold text-[#9147ff] text-base gap-2 focus:outline-none"
+              style={{ fontFamily: 'inherit', minHeight: 48 }}
+            >
               <Suspense fallback={null}>
-                <FaTwitch size={24} />
+                <FaTwitch size={22} />
               </Suspense>
-            </span>
-            Continue with Twitch
-          </button>
-
-          {/* Separator */}
-          <div className="flex items-center w-full my-4">
-            <div className="flex-grow h-px bg-gray-300" />
-            <span className="mx-3 text-gray-400 font-semibold">OR</span>
-            <div className="flex-grow h-px bg-gray-300" />
+              Sign up with Twitch
+            </button>
           </div>
 
-          {/* Email Sign Up */}
+          {/* OR Separator */}
+          <div className="flex items-center w-full my-4">
+            <div className="flex-grow h-px bg-gray-200" />
+            <span className="mx-3 text-gray-400 font-semibold text-sm">OR</span>
+            <div className="flex-grow h-px bg-gray-200" />
+          </div>
+
+          {/* Create Account Button (same style as above) */}
           <button
-            onClick={handleEmailSignUp}
-            className="w-full py-3 mb-6 rounded font-semibold text-white"
-            style={{
-              backgroundColor: '#2ea44f',
-              fontFamily: 'inherit'
-            }}
+            onClick={handleCreateAccount}
+            className="w-full py-3 rounded-full bg-[#2ea44f] hover:bg-[#2c974b] text-white font-bold text-base shadow-lg transition mb-8"
+            style={{ fontFamily: 'inherit', minHeight: 48 }}
           >
-            Sign up with Email
+            Create an account
           </button>
 
-          {/* Login Section */}
-          <div className="w-full flex flex-col items-center">
-            <hr className="w-1/2 border-gray-200 mb-2" />
-            <span className="text-gray-600 text-sm mb-2">Already registered?</span>
+          {/* Already signed in? Login */}
+          <div className="w-full flex justify-center mt-8">
             <button
               onClick={handleLogin}
-              className="w-full py-2 rounded font-semibold text-white"
-              style={{
-                backgroundColor: '#1976d2',
-                fontFamily: 'inherit'
-              }}
+              className="text-gray-500 text-sm hover:underline focus:outline-none"
+              style={{ fontFamily: 'inherit' }}
             >
-              Login
+              Already signed in? <span className="font-semibold">Login</span>
             </button>
           </div>
         </div>
