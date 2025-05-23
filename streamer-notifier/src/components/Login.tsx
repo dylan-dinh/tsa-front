@@ -145,15 +145,14 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
                                         helperText={touched.email && errors.email}
                                         className="rounded-lg"
                                     />
-                                    <Button
+                                    <button
                                         type="submit"
-                                        fullWidth
-                                        variant="contained"
-                                        className="bg-[#9147ff] hover:bg-[#7c3bdb] text-white font-semibold py-3 px-4 rounded-full transition-colors"
                                         disabled={isSubmitting}
+                                        className="w-full flex items-center justify-center py-3 px-6 rounded-full shadow-lg bg-[#9147ff] hover:bg-[#7c3bdb] transition font-semibold text-white text-base focus:outline-none"
+                                        style={{ fontFamily: 'inherit', minHeight: 48 }}
                                     >
                                         Next
-                                    </Button>
+                                    </button>
                                 </Form>
                             )}
                         </Formik>
