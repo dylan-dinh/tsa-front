@@ -43,8 +43,8 @@ const LandingPage: React.FC = () => {
         <img
           src={CLipIt_Logo}
           alt="ClipIt Logo"
-          className="max-h-44 md:max-h-80 w-auto object-contain"
-          style={{ minWidth: 120, maxWidth: '80%' }}
+          className="max-h-48 md:max-h-96 w-auto object-contain"
+          style={{ minWidth: 140, maxWidth: '90%' }}
         />
       </div>
 
@@ -87,23 +87,24 @@ const LandingPage: React.FC = () => {
             <div className="flex-grow h-px bg-gray-200" />
           </div>
 
-          {/* Create Account Button (same style as above) */}
+          {/* Create Account Button */}
           <button
             onClick={handleCreateAccount}
-            className="w-full py-3 rounded-full bg-[#2ea44f] hover:bg-[#2c974b] text-white font-bold text-base shadow-lg transition mb-8"
+            className="w-full py-3 rounded-full shadow-lg bg-[#9147ff] hover:bg-[#7c3bdb] transition font-semibold text-white text-base mb-8"
             style={{ fontFamily: 'inherit', minHeight: 48 }}
           >
             Create an account
           </button>
 
           {/* Already signed in? Login */}
-          <div className="w-full flex justify-center mt-8">
+          <div className="w-full flex flex-col items-center gap-4 mt-8">
+            <span className="text-gray-500 text-sm">Already signed in?</span>
             <button
               onClick={handleLogin}
-              className="text-gray-500 text-sm hover:underline focus:outline-none"
-              style={{ fontFamily: 'inherit' }}
+              className="w-full flex items-center justify-center py-3 px-6 rounded-full shadow-lg bg-white border border-gray-200 hover:bg-gray-100 transition font-semibold text-[#9147ff] text-base focus:outline-none"
+              style={{ fontFamily: 'inherit', minHeight: 48 }}
             >
-              Already signed in? <span className="font-semibold">Login</span>
+              Login
             </button>
           </div>
         </div>
