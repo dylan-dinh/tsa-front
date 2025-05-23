@@ -1,10 +1,15 @@
 // Requirements to run this component:
 // npm install react-icons@latest react-router-dom@latest
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FcGoogle } from 'react-icons/fc';
-import { FaTwitch } from 'react-icons/fa';
+
+const FcGoogle = React.lazy(() =>
+  import('react-icons/fc').then(module => ({ default: module.FcGoogle as React.ComponentType<any> }))
+);
+const FaTwitch = React.lazy(() =>
+  import('react-icons/fa').then(module => ({ default: module.FaTwitch as React.ComponentType<any> }))
+);
 
 // The logo should be placed in the public folder as ClipIt_logo.jpeg
 const CLipIt_Logo = process.env.PUBLIC_URL + '/ClipIt_logo.jpeg';
@@ -58,7 +63,11 @@ const LandingPage: React.FC = () => {
             className="w-full flex items-center justify-center py-3 mb-3 rounded font-semibold text-gray-800 bg-white border border-gray-300 hover:bg-gray-100 transition"
             style={{ fontFamily: 'inherit' }}
           >
-            <FcGoogle className="w-6 h-6 mr-2" />
+            <span style={{ marginRight: '0.5rem', display: 'flex', alignItems: 'center' }}>
+              <Suspense fallback={null}>
+                <FcGoogle size={24} />
+              </Suspense>
+            </span>
             Continue with Google
           </button>
           <button
@@ -70,7 +79,11 @@ const LandingPage: React.FC = () => {
               boxShadow: 'none'
             }}
           >
-            <FaTwitch className="w-6 h-6 mr-2" />
+            <span style={{ marginRight: '0.5rem', display: 'flex', alignItems: 'center' }}>
+              <Suspense fallback={null}>
+                <FaTwitch size={24} />
+              </Suspense>
+            </span>
             Continue with Twitch
           </button>
 
