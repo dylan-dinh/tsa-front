@@ -29,6 +29,7 @@ function Register({ isOpen, onClose }: RegisterProps) {
   const [error, setError] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({
     fullName: '',
     email: '',
@@ -150,9 +151,10 @@ function Register({ isOpen, onClose }: RegisterProps) {
     if (isFormValid()) {
       if (currentStep === 1) {
         setCurrentStep(2);
-      } else {
-        // Proceed with registration
-        console.log('Form is valid, proceeding with registration');
+      } else if (currentStep === 2) {
+        setCurrentStep(3);
+        // Here you would typically call your registration API
+        // and send the verification email
       }
     }
   };
@@ -288,7 +290,9 @@ function Register({ isOpen, onClose }: RegisterProps) {
 
             {/* Headline */}
             <h2 className="text-2xl font-bold text-gray-900">
-              {currentStep === 1 ? 'Create your account' : 'Create your password'}
+              {currentStep === 1 ? 'Create your account' : 
+               currentStep === 2 ? 'Create your password' :
+               'Almost there!'}
             </h2>
 
             {/* Form */}
@@ -389,7 +393,7 @@ function Register({ isOpen, onClose }: RegisterProps) {
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : currentStep === 2 ? (
                 <>
                   {/* Password Input */}
                   <div className="space-y-2">
@@ -473,34 +477,50 @@ function Register({ isOpen, onClose }: RegisterProps) {
                     />
                   </div>
                 </>
+              ) : (
+                <div className="flex flex-col items-center space-y-6">
+                  <p className="text-lg text-gray-600 text-center">
+                    One last step before you join the heart of the community
+                  </p>
+
+                  <div className="w-full bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700 text-center">
+                      You need to verify your email address first. Check your inbox and click on the link you received to join the community.
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Next Button */}
-            <button
-              type="button"
-              onClick={handleNext}
-              className="w-full flex items-center justify-center py-3 px-6 rounded-lg shadow-lg bg-[#9147ff] hover:bg-[#7c3bdb] transition font-semibold text-white text-base focus:outline-none mt-6"
-              style={{ fontFamily: 'inherit', minHeight: 48 }}
-            >
-              {currentStep === 1 ? 'Next' : 'Create Account'}
-            </button>
+            {currentStep < 3 && (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="w-full flex items-center justify-center py-3 px-6 rounded-lg shadow-lg bg-[#9147ff] hover:bg-[#7c3bdb] transition font-semibold text-white text-base focus:outline-none mt-6"
+                style={{ fontFamily: 'inherit', minHeight: 48 }}
+              >
+                {currentStep === 1 ? 'Next' : 'Create Account'}
+              </button>
+            )}
 
             {/* Sign In Link */}
-            <div className="text-sm text-gray-600 mt-4">
-              Already have an account?{' '}
-              <button
-                onClick={() => {
-                  onClose();
-                  // Open Login modal
-                  const event = new CustomEvent('openLoginModal');
-                  window.dispatchEvent(event);
-                }}
-                className="text-[#9147ff] hover:text-[#7c3bdb] font-semibold transition-colors"
-              >
-                Sign in
-              </button>
-            </div>
+            {currentStep < 3 && (
+              <div className="text-sm text-gray-600 mt-4">
+                Already have an account?{' '}
+                <button
+                  onClick={() => {
+                    onClose();
+                    // Open Login modal
+                    const event = new CustomEvent('openLoginModal');
+                    window.dispatchEvent(event);
+                  }}
+                  className="text-[#9147ff] hover:text-[#7c3bdb] font-semibold transition-colors"
+                >
+                  Sign in
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
