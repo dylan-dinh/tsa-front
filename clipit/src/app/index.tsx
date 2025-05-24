@@ -1,6 +1,6 @@
 import React from 'react';
-import { ModalProvider } from '../src/context/ModalContext';
-import LandingPage from '../src/components/Landing';
+import { ModalProvider } from '../context/ModalContext';
+import LandingPage from '../components/Landing';
 
 export default function Index() {
   return (
