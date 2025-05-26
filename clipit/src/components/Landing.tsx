@@ -2,7 +2,7 @@
 // npm install @expo/vector-icons react-icons
 //test git status
 
-import React, { useState, Suspense } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,20 +10,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Login from './Login';
 import Register from './Register';
 import SocialAuth from './SocialAuth';
+import GoogleIcon from './GoogleIcon';
 import { useModal } from '../context/ModalContext';
+import { RootStackParamList } from '../types/navigation';
 
-const FcGoogle = React.lazy(() =>
-  import('react-icons/fc').then(module => ({ default: module.FcGoogle as React.ComponentType<any> }))
-);
-
-type RootStackParamList = {
-  Dashboard: undefined;
-  Login: undefined;
-  Register: undefined;
-  UserProfile: undefined;
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
 interface ModalProps {
   isOpen: boolean;
@@ -56,6 +47,14 @@ const LandingPage = () => {
     openLoginModal();
   };
 
+  const handleDashboardNavigation = () => {
+    navigation.navigate('Dashboard');
+  };
+
+  const handleUserProfileNavigation = () => {
+    navigation.navigate('UserProfile');
+  };
+
   return (
     <View style={styles.container}>
       {/* Left: Logo Section */}
@@ -75,15 +74,32 @@ const LandingPage = () => {
             Share your best. Connect with the rest.
           </Text>
 
+          {/* Navigation Buttons for Testing */}
+          <View style={styles.devButtons}>
+            <TouchableOpacity
+              onPress={handleDashboardNavigation}
+              style={[styles.button, styles.devButton]}
+            >
+              <MaterialCommunityIcons name="view-dashboard" size={22} color="#9147ff" />
+              <Text style={styles.devButtonText}>Go to Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleUserProfileNavigation}
+              style={[styles.button, styles.devButton]}
+            >
+              <MaterialCommunityIcons name="account" size={22} color="#9147ff" />
+              <Text style={styles.devButtonText}>Go to Profile</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Sign Up Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               onPress={handleGoogleSignUp}
               style={[styles.button, styles.googleButton]}
             >
-              <Suspense fallback={null}>
-                <FcGoogle size={22} />
-              </Suspense>
+              <GoogleIcon size={22} />
               <Text style={styles.googleButtonText}>Sign up with Google</Text>
             </TouchableOpacity>
 
@@ -176,12 +192,32 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 40,
+    marginBottom: 20,
     textAlign: 'left',
+  },
+  devButtons: {
+    width: '100%',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+  },
+  devButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginBottom: 8,
+  },
+  devButtonText: {
+    color: '#9147ff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   buttonContainer: {
     width: '100%',
-    gap: 16,
     marginBottom: 24,
   },
   button: {
@@ -191,6 +227,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 25,
     minHeight: 48,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -219,6 +256,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
   twitchButtonText: {
     color: '#9147ff',
@@ -253,11 +291,11 @@ const styles = StyleSheet.create({
   },
   loginSection: {
     alignItems: 'center',
-    gap: 16,
   },
   loginText: {
     color: '#6b7280',
     fontSize: 14,
+    marginBottom: 16,
   },
   loginButton: {
     backgroundColor: '#fff',

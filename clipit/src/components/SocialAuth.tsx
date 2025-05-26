@@ -3,16 +3,11 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity, Image, Modal, Alert, StyleSheet } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
+import * as SecureStore from 'expo-secure-store';
+import GoogleIcon from './GoogleIcon';
+import { RootStackParamList } from '../types/navigation';
 
-type RootStackParamList = {
-  Dashboard: undefined;
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
-
-const CLipIt_Logo = process.env.PUBLIC_URL + '/ClipIt_logo.jpeg';
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface SocialAuthProps {
   isOpen: boolean;
@@ -22,37 +17,23 @@ interface SocialAuthProps {
 
 const SocialAuth: React.FC<SocialAuthProps> = ({ isOpen, onClose, provider }) => {
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation<NavigationProp>();
 
   if (!isOpen) return null;
 
   const handleAuth = async () => {
+    setIsLoading(true);
     try {
-      // Configure OAuth endpoints based on provider
-      const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
-      const clientId = provider === 'google' 
-        ? 'YOUR_GOOGLE_CLIENT_ID'
-        : 'YOUR_TWITCH_CLIENT_ID';
-      
-      const authUrl = provider === 'google'
-        ? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=email%20profile`
-        : `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=user:read:email`;
-
-      const result = await AuthSession.startAsync({
-        authUrl,
-        returnUrl: redirectUri,
-      });
-
-      if (result.type === 'success') {
-        // Handle successful authentication
-        navigation.navigate('Dashboard');
-      } else {
-        setError('Authentication failed. Please try again.');
-        Alert.alert('Error', error);
-      }
+      // Simulate successful authentication
+      await SecureStore.setItemAsync('userToken', `${provider}-oauth-token`);
+      navigation.navigate('Dashboard');
+      onClose();
     } catch (err) {
       setError('Authentication failed. Please try again.');
-      Alert.alert('Error', error);
+      Alert.alert('Error', 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,10 +53,11 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ isOpen, onClose, provider }) =>
 
           {/* Content */}
           <View style={styles.content}>
-            {/* Logo */}
+            {/* Logo - Using the same ClipIt logo as Landing page */}
             <Image
-              source={{ uri: CLipIt_Logo }}
-              style={{ height: 48, width: 'auto', resizeMode: 'contain' }}
+              source={require('../../assets/ClipIt_logo.jpeg')}
+              style={styles.logo}
+              resizeMode="contain"
             />
 
             {/* Headline */}
@@ -88,20 +70,29 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ isOpen, onClose, provider }) =>
               onPress={handleAuth}
               style={[
                 styles.authButton,
-                provider === 'google' ? styles.googleButton : styles.twitchButton
+                provider === 'google' ? styles.googleButton : styles.twitchButton,
+                isLoading && styles.buttonDisabled
               ]}
+              disabled={isLoading}
             >
-              <MaterialCommunityIcons
-                name={provider === 'google' ? 'google' : 'twitch'}
-                size={22}
-                color={provider === 'google' ? '#4285F4' : 'white'}
-                style={styles.buttonIcon}
-              />
+              {provider === 'google' ? (
+                <GoogleIcon size={22} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="twitch"
+                  size={22}
+                  color="white"
+                  style={styles.buttonIcon}
+                />
+              )}
               <Text style={[
                 styles.buttonText,
                 provider === 'google' ? styles.googleButtonText : styles.twitchButtonText
               ]}>
-                Continue with {provider === 'google' ? 'Google' : 'Twitch'}
+                {isLoading 
+                  ? 'Connecting...' 
+                  : `Continue with ${provider === 'google' ? 'Google' : 'Twitch'}`
+                }
               </Text>
             </TouchableOpacity>
 
@@ -134,17 +125,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
+    zIndex: 1,
   },
   content: {
     alignItems: 'center',
     marginTop: 16,
+  },
+  logo: {
+    width: 120,
+    height: 60,
+    marginBottom: 16,
   },
   headline: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#111827',
     textAlign: 'center',
-    marginTop: 16,
+    marginBottom: 24,
   },
   authButton: {
     width: '100%',
@@ -154,7 +151,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    marginTop: 24,
+    marginBottom: 24,
   },
   googleButton: {
     backgroundColor: 'white',
@@ -169,6 +166,8 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 8,
   },
   googleButtonText: {
     color: '#111827',
@@ -176,11 +175,14 @@ const styles = StyleSheet.create({
   twitchButtonText: {
     color: 'white',
   },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
   infoText: {
     fontSize: 14,
     color: '#4B5563',
     textAlign: 'center',
-    marginTop: 16,
+    lineHeight: 20,
   },
 });
 

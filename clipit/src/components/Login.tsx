@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Image } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -7,16 +7,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useModal } from '../context/ModalContext';
+import GoogleIcon from './GoogleIcon';
+import { RootStackParamList } from '../types/navigation';
 
-const FcGoogle = React.lazy(() =>
-  import('react-icons/fc').then(module => ({ default: module.FcGoogle as React.ComponentType<any> }))
-);
-
-type RootStackParamList = {
-  Dashboard: undefined;
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface LoginProps {
   isOpen: boolean;
@@ -48,6 +42,26 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await SecureStore.setItemAsync('userToken', 'google-oauth-token');
+      navigation.navigate('Dashboard');
+      onClose();
+    } catch (error) {
+      Alert.alert('Error', 'Google OAuth failed. Please try again.');
+    }
+  };
+
+  const handleTwitchLogin = async () => {
+    try {
+      await SecureStore.setItemAsync('userToken', 'twitch-oauth-token');
+      navigation.navigate('Dashboard');
+      onClose();
+    } catch (error) {
+      Alert.alert('Error', 'Twitch OAuth failed. Please try again.');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -74,23 +88,21 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
             />
 
             {/* Headline */}
-            <Text style={styles.headline}>Connect to Clip</Text>
+            <Text style={styles.headline}>Connect to ClipIt</Text>
 
             {/* Social Sign Up Buttons */}
             <View style={styles.socialButtons}>
               <TouchableOpacity
                 style={[styles.socialButton, styles.googleButton]}
-                onPress={() => {/* TODO: Implement Google OAuth */}}
+                onPress={handleGoogleLogin}
               >
-                <Suspense fallback={null}>
-                  <FcGoogle size={22} />
-                </Suspense>
+                <GoogleIcon size={22} />
                 <Text style={styles.googleButtonText}>Sign in with Google</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.socialButton, styles.twitchButton]}
-                onPress={() => {/* TODO: Implement Twitch OAuth */}}
+                onPress={handleTwitchLogin}
               >
                 <MaterialCommunityIcons name="twitch" size={22} color="#9147ff" />
                 <Text style={styles.twitchButtonText}>Sign in with Twitch</Text>
@@ -156,7 +168,7 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
 
             {/* Forgot Password */}
             <TouchableOpacity
-              onPress={() => {/* TODO: Implement forgot password */}}
+              onPress={() => Alert.alert('Info', 'Forgot password feature coming soon!')}
               style={styles.forgotPassword}
             >
               <Text style={styles.forgotPasswordText}>Forgot password?</Text>
@@ -194,68 +206,68 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '90%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
   closeButton: {
     position: 'absolute',
     top: 16,
     right: 16,
+    zIndex: 1,
   },
   content: {
     alignItems: 'center',
     marginTop: 16,
   },
   logo: {
-    height: 48,
-    width: 'auto',
+    width: 120,
+    height: 60,
+    marginBottom: 16,
   },
   headline: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#111827',
     textAlign: 'center',
-    marginTop: 16,
+    marginBottom: 24,
   },
   socialButtons: {
     width: '100%',
-    gap: 16,
-    marginTop: 24,
+    marginBottom: 20,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    minHeight: 48,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   googleButton: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   twitchButton: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   googleButtonText: {
-    color: '#111827',
+    marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    color: '#111827',
   },
   twitchButtonText: {
-    color: '#9147ff',
+    marginLeft: 8,
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    color: '#9147ff',
   },
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginVertical: 24,
+    marginBottom: 20,
   },
   separatorLine: {
     flex: 1,
@@ -263,9 +275,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   separatorText: {
-    marginHorizontal: 12,
-    color: '#9CA3AF',
+    marginHorizontal: 16,
     fontSize: 14,
+    color: '#6B7280',
     fontWeight: '600',
   },
   form: {
@@ -278,24 +290,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
+    backgroundColor: 'white',
   },
   errorText: {
     color: '#EF4444',
     fontSize: 12,
     marginTop: 4,
+    marginLeft: 4,
   },
   submitButton: {
     backgroundColor: '#9147ff',
     paddingVertical: 12,
-    paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
   submitButtonText: {
     color: 'white',
@@ -306,21 +320,24 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   forgotPasswordText: {
-    color: '#6B7280',
+    color: '#9147ff',
     fontSize: 14,
+    textDecorationLine: 'underline',
   },
   signUpContainer: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: 20,
+    alignItems: 'center',
   },
   signUpText: {
-    color: '#6B7280',
     fontSize: 14,
+    color: '#6B7280',
   },
   signUpLink: {
-    color: '#9147ff',
     fontSize: 14,
+    color: '#9147ff',
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 
