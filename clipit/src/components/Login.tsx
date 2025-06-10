@@ -12,7 +12,7 @@ import { RootStackParamList } from '../types/navigation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface LoginProps {
+interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -22,7 +22,8 @@ const loginSchema = Yup.object().shape({
   password: Yup.string().required('Password is required'),
 });
 
-const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
+// Composant Modal pour le login
+export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation<NavigationProp>();
   const { openRegisterModal } = useModal();
@@ -203,6 +204,19 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
   );
 };
 
+// Composant Screen pour la navigation
+export default function LoginScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const { isLoginModalOpen, closeLoginModal } = useModal();
+
+  return (
+    <LoginModal 
+      isOpen={isLoginModalOpen} 
+      onClose={closeLoginModal}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -332,6 +346,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+    }),
   },
   buttonDisabled: {
     opacity: 0.7,
@@ -363,6 +388,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+    }),
+  },
 });
-
-export default Login;

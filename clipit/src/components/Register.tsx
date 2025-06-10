@@ -12,6 +12,11 @@ import { RootStackParamList } from '../types/navigation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+interface RegisterModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 interface RegisterProps {
   isOpen: boolean;
   onClose: () => void;
@@ -43,7 +48,8 @@ const registerSchema = Yup.object().shape({
     .required('Confirm password is required'),
 });
 
-const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
+// Composant Modal pour l'inscription
+export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -396,6 +402,19 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
   );
 };
 
+// Composant Screen pour la navigation
+export default function RegisterScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const { isRegisterModalOpen, closeRegisterModal } = useModal();
+
+  return (
+    <RegisterModal 
+      isOpen={isRegisterModalOpen} 
+      onClose={closeRegisterModal}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -660,5 +679,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default Register;

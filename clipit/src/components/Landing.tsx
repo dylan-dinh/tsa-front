@@ -7,8 +7,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, SafeAreaVi
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Login from './Login';
-import Register from './Register';
+import { LoginModal } from './Login';
+import { RegisterModal } from './Register';
 import SocialAuth from './SocialAuth';
 import GoogleIcon from './GoogleIcon';
 import { useModal } from '../context/ModalContext';
@@ -146,13 +146,13 @@ const LandingPage = () => {
 
       {/* Modals */}
       {isLoginModalOpen && (
-        <Login 
+        <LoginModal 
           isOpen={isLoginModalOpen} 
           onClose={closeLoginModal} 
         />
       )}
       {isRegisterModalOpen && (
-        <Register 
+        <RegisterModal 
           isOpen={isRegisterModalOpen} 
           onClose={closeRegisterModal} 
         />
@@ -185,14 +185,14 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: Platform.select({ web: 'row', default: 'column' }),
   },
   contentMobile: {
     flexDirection: 'column',
   },
   logoSection: {
-    width: isMobile ? '100%' : '50%',
-    height: isMobile ? height * 0.3 : height,
+    width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
+    height: Platform.select({ web: isMobile ? height * 0.3 : height, default: height * 0.3 }),
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -206,8 +206,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   contentSection: {
-    width: isMobile ? '100%' : '50%',
-    height: isMobile ? height * 0.7 : height,
+    width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
+    height: Platform.select({ web: isMobile ? height * 0.7 : height, default: height * 0.7 }),
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -240,6 +240,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     marginBottom: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+    }),
   },
   devButtonText: {
     color: '#9147ff',
@@ -249,46 +260,45 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   button: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    borderRadius: 25,
-    minHeight: 48,
-    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 12,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+      web: {
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
       },
-      android: {
-        elevation: 3,
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
       },
     }),
   },
   googleButton: {
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E5E7EB',
   },
   twitchButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: '#9147ff',
   },
   googleButtonText: {
-    color: '#000',
+    color: '#111827',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
   twitchButtonText: {
-    color: '#9147ff',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -296,24 +306,24 @@ const styles = StyleSheet.create({
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#E5E7EB',
   },
   separatorText: {
-    marginHorizontal: 16,
-    color: '#6b7280',
+    marginHorizontal: 10,
+    color: '#6B7280',
     fontSize: 14,
   },
   createAccountButton: {
     backgroundColor: '#9147ff',
-    borderWidth: 0,
+    marginBottom: 20,
   },
   createAccountButtonText: {
-    color: '#fff',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -321,19 +331,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
   },
   loginText: {
-    color: '#6b7280',
+    color: '#6B7280',
     fontSize: 14,
     marginRight: 8,
   },
   loginButton: {
     backgroundColor: 'transparent',
-    borderWidth: 0,
     padding: 0,
     margin: 0,
-    minHeight: 0,
+    width: 'auto',
   },
   loginButtonText: {
     color: '#9147ff',

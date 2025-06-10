@@ -14,7 +14,7 @@ const Stack = createNativeStackNavigator();
 const AppWithProviders = () => {
   return (
     <SafeAreaProvider>
-      <ModalProvider>
+      {/*<ModalProvider>*/}
         <NavigationContainer>
           <StatusBar style="auto" />
           <Stack.Navigator 
@@ -52,7 +52,7 @@ const AppWithProviders = () => {
             />
           </Stack.Navigator>
         </NavigationContainer>
-      </ModalProvider>
+      {/*</ModalProvider>*/ }
     </SafeAreaProvider>
   );
 };

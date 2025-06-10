@@ -11,38 +11,44 @@ import { RootStackParamList } from './src/types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+function AppNavigator() {
+  return (
+    <Stack.Navigator initialRouteName="Landing">
+      <Stack.Screen 
+        name="Landing" 
+        component={LandingPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Login" 
+        component={Login}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Register" 
+        component={Register}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Dashboard" 
+        component={Dashboard}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="UserProfile" 
+        component={UserProfile}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 export default function App() {
   return (
     <StrictMode>
       <NavigationContainer>
         <ModalProvider>
-          <Stack.Navigator initialRouteName="Landing">
-            <Stack.Screen 
-              name="Landing" 
-              component={LandingPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-              name="Login" 
-              component={Login}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-              name="Register" 
-              component={Register}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-              name="Dashboard" 
-              component={Dashboard}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-              name="UserProfile" 
-              component={UserProfile}
-              options={{ headerShown: false }}
-            />
-          </Stack.Navigator>
+          <AppNavigator />
         </ModalProvider>
       </NavigationContainer>
     </StrictMode>
