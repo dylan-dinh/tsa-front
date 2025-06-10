@@ -10,11 +10,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const Stack = createNativeStackNavigator();
 
-// Wrapper component pour le ModalProvider
-const AppWithProviders = () => {
+const AppWithProviders: React.FC = () => {
+  console.log('AppWithProviders: Initializing');
+  
   return (
     <SafeAreaProvider>
-      {/*<ModalProvider>*/}
+      <ModalProvider>
         <NavigationContainer>
           <StatusBar style="auto" />
           <Stack.Navigator 
@@ -52,7 +53,7 @@ const AppWithProviders = () => {
             />
           </Stack.Navigator>
         </NavigationContainer>
-      {/*</ModalProvider>*/ }
+      </ModalProvider>
     </SafeAreaProvider>
   );
 };

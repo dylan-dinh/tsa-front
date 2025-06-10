@@ -2,7 +2,7 @@
 // npm install @expo/vector-icons react-icons
 //test git status
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, SafeAreaView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -30,32 +30,213 @@ const LandingPage = () => {
   const { isLoginModalOpen, isRegisterModalOpen, openLoginModal, openRegisterModal, closeLoginModal, closeRegisterModal } = useModal();
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
   const [isTwitchAuthOpen, setIsTwitchAuthOpen] = useState(false);
-  const { width, height } = Dimensions.get('window');
-  const isMobile = width < 768;
+  
+  const { width, height } = useMemo(() => Dimensions.get('window'), []);
+  const isMobile = useMemo(() => width < 768, [width]);
 
-  const handleGoogleSignUp = () => {
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#fff',
+    },
+    content: {
+      flex: 1,
+      flexDirection: Platform.select({ web: 'row', default: 'column' }),
+    },
+    contentMobile: {
+      flexDirection: 'column',
+    },
+    logoSection: {
+      width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
+      height: Platform.select({ web: isMobile ? height * 0.3 : height, default: height * 0.3 }),
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    logoSectionMobile: {
+      height: height * 0.3,
+    },
+    logo: {
+      width: '90%',
+      height: 200,
+      maxWidth: 400,
+    },
+    contentSection: {
+      width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
+      height: Platform.select({ web: isMobile ? height * 0.7 : height, default: height * 0.7 }),
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    contentSectionMobile: {
+      height: height * 0.7,
+    },
+    contentContainer: {
+      width: '100%',
+      maxWidth: 400,
+    },
+    headline: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      color: '#000',
+      marginBottom: 20,
+      textAlign: 'left',
+    },
+    devButtons: {
+      width: '100%',
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      borderRadius: 8,
+      padding: 16,
+      backgroundColor: '#f8f9fa',
+    },
+    devButton: {
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      marginBottom: 8,
+      ...Platform.select({
+        web: {
+          boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+        },
+      }),
+    },
+    devButtonText: {
+      color: '#9147ff',
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    buttonContainer: {
+      width: '100%',
+      marginBottom: 20,
+    },
+    button: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      marginBottom: 12,
+      ...Platform.select({
+        web: {
+          boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+        },
+      }),
+    },
+    googleButton: {
+      backgroundColor: 'white',
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+    },
+    twitchButton: {
+      backgroundColor: '#9147ff',
+    },
+    googleButtonText: {
+      color: '#111827',
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    twitchButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    separator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 20,
+    },
+    separatorLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: '#E5E7EB',
+    },
+    separatorText: {
+      marginHorizontal: 10,
+      color: '#6B7280',
+      fontSize: 14,
+    },
+    createAccountButton: {
+      backgroundColor: '#9147ff',
+      marginBottom: 20,
+    },
+    createAccountButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    loginSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loginText: {
+      color: '#6B7280',
+      fontSize: 14,
+      marginRight: 8,
+    },
+    loginButton: {
+      backgroundColor: 'transparent',
+      padding: 0,
+      margin: 0,
+      width: 'auto',
+    },
+    loginButtonText: {
+      color: '#9147ff',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+  }), [isMobile, height]);
+
+  const handleGoogleSignUp = useCallback(() => {
     setIsGoogleAuthOpen(true);
-  };
+  }, []);
 
-  const handleTwitchSignUp = () => {
+  const handleTwitchSignUp = useCallback(() => {
     setIsTwitchAuthOpen(true);
-  };
+  }, []);
 
-  const handleCreateAccount = () => {
+  const handleCreateAccount = useCallback(() => {
     openRegisterModal();
-  };
+  }, [openRegisterModal]);
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     openLoginModal();
-  };
+  }, [openLoginModal]);
 
-  const handleDashboardNavigation = () => {
+  const handleDashboardNavigation = useCallback(() => {
     navigation.navigate('Dashboard');
-  };
+  }, [navigation]);
 
-  const handleUserProfileNavigation = () => {
+  const handleUserProfileNavigation = useCallback(() => {
     navigation.navigate('UserProfile');
-  };
+  }, [navigation]);
+
+  const handleCloseGoogleAuth = useCallback(() => {
+    setIsGoogleAuthOpen(false);
+  }, []);
+
+  const handleCloseTwitchAuth = useCallback(() => {
+    setIsTwitchAuthOpen(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -160,194 +341,19 @@ const LandingPage = () => {
       {isGoogleAuthOpen && (
         <SocialAuth 
           isOpen={isGoogleAuthOpen} 
-          onClose={() => setIsGoogleAuthOpen(false)} 
+          onClose={handleCloseGoogleAuth} 
           provider="google" 
         />
       )}
       {isTwitchAuthOpen && (
         <SocialAuth 
           isOpen={isTwitchAuthOpen} 
-          onClose={() => setIsTwitchAuthOpen(false)} 
+          onClose={handleCloseTwitchAuth} 
           provider="twitch" 
         />
       )}
     </SafeAreaView>
   );
 };
-
-const { width, height } = Dimensions.get('window');
-const isMobile = width < 768;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    flexDirection: Platform.select({ web: 'row', default: 'column' }),
-  },
-  contentMobile: {
-    flexDirection: 'column',
-  },
-  logoSection: {
-    width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
-    height: Platform.select({ web: isMobile ? height * 0.3 : height, default: height * 0.3 }),
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  logoSectionMobile: {
-    height: height * 0.3,
-  },
-  logo: {
-    width: '90%',
-    height: 200,
-    maxWidth: 400,
-  },
-  contentSection: {
-    width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
-    height: Platform.select({ web: isMobile ? height * 0.7 : height, default: height * 0.7 }),
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  contentSectionMobile: {
-    height: height * 0.7,
-  },
-  contentContainer: {
-    width: '100%',
-    maxWidth: 400,
-  },
-  headline: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 20,
-    textAlign: 'left',
-  },
-  devButtons: {
-    width: '100%',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-  },
-  devButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 8,
-    ...Platform.select({
-      web: {
-        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-      },
-    }),
-  },
-  devButtonText: {
-    color: '#9147ff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  buttonContainer: {
-    width: '100%',
-    marginBottom: 20,
-  },
-  button: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginBottom: 12,
-    ...Platform.select({
-      web: {
-        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-      },
-    }),
-  },
-  googleButton: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  twitchButton: {
-    backgroundColor: '#9147ff',
-  },
-  googleButtonText: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  twitchButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  separator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  separatorText: {
-    marginHorizontal: 10,
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  createAccountButton: {
-    backgroundColor: '#9147ff',
-    marginBottom: 20,
-  },
-  createAccountButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loginSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginText: {
-    color: '#6B7280',
-    fontSize: 14,
-    marginRight: 8,
-  },
-  loginButton: {
-    backgroundColor: 'transparent',
-    padding: 0,
-    margin: 0,
-    width: 'auto',
-  },
-  loginButtonText: {
-    color: '#9147ff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
 export default LandingPage;
