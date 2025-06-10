@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Image, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigation } from '@react-navigation/native';
@@ -71,124 +71,134 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Close Button */}
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
-          </TouchableOpacity>
-
-          {/* Content */}
-          <View style={styles.content}>
-            {/* Logo */}
-            <Image
-              source={require('../../assets/ClipIt_logo.jpeg')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-
-            {/* Headline */}
-            <Text style={styles.headline}>Connect to ClipIt</Text>
-
-            {/* Social Sign Up Buttons */}
-            <View style={styles.socialButtons}>
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={handleGoogleLogin}
-              >
-                <GoogleIcon size={22} />
-                <Text style={styles.googleButtonText}>Sign in with Google</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.socialButton, styles.twitchButton]}
-                onPress={handleTwitchLogin}
-              >
-                <MaterialCommunityIcons name="twitch" size={22} color="#9147ff" />
-                <Text style={styles.twitchButtonText}>Sign in with Twitch</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* OR Separator */}
-            <View style={styles.separator}>
-              <View style={styles.separatorLine} />
-              <Text style={styles.separatorText}>OR</Text>
-              <View style={styles.separatorLine} />
-            </View>
-
-            {/* Email Form */}
-            <Formik
-              initialValues={{ email: '', password: '' }}
-              validationSchema={loginSchema}
-              onSubmit={handleLogin}
-            >
-              {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-                <View style={styles.form}>
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email"
-                      onChangeText={handleChange('email')}
-                      onBlur={handleBlur('email')}
-                      value={values.email}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                    {touched.email && errors.email && (
-                      <Text style={styles.errorText}>{errors.email}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Password"
-                      onChangeText={handleChange('password')}
-                      onBlur={handleBlur('password')}
-                      value={values.password}
-                      secureTextEntry
-                    />
-                    {touched.password && errors.password && (
-                      <Text style={styles.errorText}>{errors.password}</Text>
-                    )}
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.submitButton, isLoading && styles.buttonDisabled]}
-                    onPress={() => handleSubmit()}
-                    disabled={isLoading}
-                  >
-                    <Text style={styles.submitButtonText}>
-                      {isLoading ? 'Logging in...' : 'Login'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </Formik>
-
-            {/* Forgot Password */}
-            <TouchableOpacity
-              onPress={() => Alert.alert('Info', 'Forgot password feature coming soon!')}
-              style={styles.forgotPassword}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.modalContent}>
+            {/* Close Button */}
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
 
-            {/* Sign Up Link */}
-            <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Not registered yet? </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  onClose();
-                  openRegisterModal();
-                }}
+            {/* Content */}
+            <View style={styles.content}>
+              {/* Logo */}
+              <Image
+                source={require('../../assets/ClipIt_logo.jpeg')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+
+              {/* Headline */}
+              <Text style={styles.headline}>Connect to ClipIt</Text>
+
+              {/* Social Sign Up Buttons */}
+              <View style={styles.socialButtons}>
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.googleButton]}
+                  onPress={handleGoogleLogin}
+                >
+                  <GoogleIcon size={22} />
+                  <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.twitchButton]}
+                  onPress={handleTwitchLogin}
+                >
+                  <MaterialCommunityIcons name="twitch" size={22} color="#9147ff" />
+                  <Text style={styles.twitchButtonText}>Sign in with Twitch</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* OR Separator */}
+              <View style={styles.separator}>
+                <View style={styles.separatorLine} />
+                <Text style={styles.separatorText}>OR</Text>
+                <View style={styles.separatorLine} />
+              </View>
+
+              {/* Email Form */}
+              <Formik
+                initialValues={{ email: '', password: '' }}
+                validationSchema={loginSchema}
+                onSubmit={handleLogin}
               >
-                <Text style={styles.signUpLink}>Sign up</Text>
+                {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                  <View style={styles.form}>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        onChangeText={handleChange('email')}
+                        onBlur={handleBlur('email')}
+                        value={values.email}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                      {touched.email && errors.email && (
+                        <Text style={styles.errorText}>{errors.email}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        onChangeText={handleChange('password')}
+                        onBlur={handleBlur('password')}
+                        value={values.password}
+                        secureTextEntry
+                        placeholderTextColor="#9CA3AF"
+                      />
+                      {touched.password && errors.password && (
+                        <Text style={styles.errorText}>{errors.password}</Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.submitButton, isLoading && styles.buttonDisabled]}
+                      onPress={() => handleSubmit()}
+                      disabled={isLoading}
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {isLoading ? 'Logging in...' : 'Login'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Formik>
+
+              {/* Forgot Password */}
+              <TouchableOpacity
+                onPress={() => Alert.alert('Info', 'Forgot password feature coming soon!')}
+                style={styles.forgotPassword}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot password?</Text>
               </TouchableOpacity>
+
+              {/* Sign Up Link */}
+              <View style={styles.signUpContainer}>
+                <Text style={styles.signUpText}>Not registered yet? </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    onClose();
+                    openRegisterModal();
+                  }}
+                >
+                  <Text style={styles.signUpLink}>Sign up</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -197,6 +207,9 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -207,6 +220,17 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 400,
     maxHeight: '80%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   closeButton: {
     position: 'absolute',
@@ -252,22 +276,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   googleButtonText: {
-    marginLeft: 8,
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    marginLeft: 8,
   },
   twitchButtonText: {
-    marginLeft: 8,
+    color: '#9147ff',
     fontSize: 16,
     fontWeight: '600',
-    color: '#9147ff',
+    marginLeft: 8,
   },
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 20,
+    marginVertical: 20,
   },
   separatorLine: {
     flex: 1,
@@ -276,9 +300,8 @@ const styles = StyleSheet.create({
   },
   separatorText: {
     marginHorizontal: 16,
-    fontSize: 14,
     color: '#6B7280',
-    fontWeight: '600',
+    fontSize: 14,
   },
   form: {
     width: '100%',
@@ -287,29 +310,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
+    width: '100%',
+    height: 48,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: 'white',
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
   },
   errorText: {
     color: '#EF4444',
     fontSize: 12,
     marginTop: 4,
-    marginLeft: 4,
   },
   submitButton: {
     backgroundColor: '#9147ff',
-    paddingVertical: 12,
+    height: 48,
     borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.7,
   },
   submitButtonText: {
     color: 'white',
@@ -322,22 +347,21 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: '#9147ff',
     fontSize: 14,
-    textDecorationLine: 'underline',
+    fontWeight: '500',
   },
   signUpContainer: {
     flexDirection: 'row',
-    marginTop: 20,
-    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
   },
   signUpText: {
-    fontSize: 14,
     color: '#6B7280',
+    fontSize: 14,
   },
   signUpLink: {
-    fontSize: 14,
     color: '#9147ff',
+    fontSize: 14,
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
 });
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Image, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigation } from '@react-navigation/native';
@@ -103,7 +103,10 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
         <View style={styles.modalContent}>
           {/* Close Button */}
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -111,7 +114,11 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
           </TouchableOpacity>
 
           {/* Content */}
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.content} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {/* Logo */}
             <Image
               source={require('../../assets/ClipIt_logo.jpeg')}
@@ -204,6 +211,7 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                           onChangeText={handleChange('firstName')}
                           onBlur={handleBlur('firstName')}
                           value={values.firstName}
+                          placeholderTextColor="#9CA3AF"
                         />
                         {touched.firstName && errors.firstName && (
                           <Text style={styles.errorText}>{errors.firstName}</Text>
@@ -217,6 +225,7 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                           onChangeText={handleChange('lastName')}
                           onBlur={handleBlur('lastName')}
                           value={values.lastName}
+                          placeholderTextColor="#9CA3AF"
                         />
                         {touched.lastName && errors.lastName && (
                           <Text style={styles.errorText}>{errors.lastName}</Text>
@@ -231,6 +240,7 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                           onBlur={handleBlur('age')}
                           value={values.age}
                           keyboardType="numeric"
+                          placeholderTextColor="#9CA3AF"
                         />
                         {touched.age && errors.age && (
                           <Text style={styles.errorText}>{errors.age}</Text>
@@ -255,43 +265,31 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                           value={values.email}
                           keyboardType="email-address"
                           autoCapitalize="none"
+                          placeholderTextColor="#9CA3AF"
                         />
                         {touched.email && errors.email && (
                           <Text style={styles.errorText}>{errors.email}</Text>
                         )}
                       </View>
 
-                      <View style={styles.stepButtons}>
-                        <TouchableOpacity style={styles.backButton} onPress={prevStep}>
-                          <Text style={styles.backButtonText}>Back</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.nextButton} onPress={nextStep}>
-                          <Text style={styles.nextButtonText}>Next</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  )}
-
-                  {currentStep === 3 && (
-                    <>
-                      <Text style={styles.stepTitle}>Create Password</Text>
                       <View style={styles.inputContainer}>
                         <View style={styles.passwordContainer}>
                           <TextInput
-                            style={styles.passwordInput}
+                            style={[styles.input, styles.passwordInput]}
                             placeholder="Password"
                             onChangeText={handleChange('password')}
                             onBlur={handleBlur('password')}
                             value={values.password}
                             secureTextEntry={!showPassword}
+                            placeholderTextColor="#9CA3AF"
                           />
                           <TouchableOpacity
+                            style={styles.eyeIcon}
                             onPress={() => setShowPassword(!showPassword)}
-                            style={styles.passwordToggle}
                           >
                             <MaterialCommunityIcons
                               name={showPassword ? 'eye-off' : 'eye'}
-                              size={20}
+                              size={24}
                               color="#6B7280"
                             />
                           </TouchableOpacity>
@@ -304,20 +302,21 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                       <View style={styles.inputContainer}>
                         <View style={styles.passwordContainer}>
                           <TextInput
-                            style={styles.passwordInput}
+                            style={[styles.input, styles.passwordInput]}
                             placeholder="Confirm Password"
                             onChangeText={handleChange('confirmPassword')}
                             onBlur={handleBlur('confirmPassword')}
                             value={values.confirmPassword}
                             secureTextEntry={!showConfirmPassword}
+                            placeholderTextColor="#9CA3AF"
                           />
                           <TouchableOpacity
+                            style={styles.eyeIcon}
                             onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                            style={styles.passwordToggle}
                           >
                             <MaterialCommunityIcons
                               name={showConfirmPassword ? 'eye-off' : 'eye'}
-                              size={20}
+                              size={24}
                               color="#6B7280"
                             />
                           </TouchableOpacity>
@@ -327,9 +326,40 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                         )}
                       </View>
 
-                      <View style={styles.stepButtons}>
-                        <TouchableOpacity style={styles.backButton} onPress={prevStep}>
-                          <Text style={styles.backButtonText}>Back</Text>
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.prevButton} onPress={prevStep}>
+                          <Text style={styles.prevButtonText}>Back</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.nextButton} onPress={nextStep}>
+                          <Text style={styles.nextButtonText}>Next</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+
+                  {currentStep === 3 && (
+                    <>
+                      <Text style={styles.stepTitle}>Review & Submit</Text>
+                      <View style={styles.reviewContainer}>
+                        <View style={styles.reviewItem}>
+                          <Text style={styles.reviewLabel}>Name:</Text>
+                          <Text style={styles.reviewValue}>
+                            {values.firstName} {values.lastName}
+                          </Text>
+                        </View>
+                        <View style={styles.reviewItem}>
+                          <Text style={styles.reviewLabel}>Age:</Text>
+                          <Text style={styles.reviewValue}>{values.age}</Text>
+                        </View>
+                        <View style={styles.reviewItem}>
+                          <Text style={styles.reviewLabel}>Email:</Text>
+                          <Text style={styles.reviewValue}>{values.email}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.prevButton} onPress={prevStep}>
+                          <Text style={styles.prevButtonText}>Back</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.submitButton, isLoading && styles.buttonDisabled]}
@@ -356,12 +386,12 @@ const Register: React.FC<RegisterProps> = ({ isOpen, onClose }) => {
                   openLoginModal();
                 }}
               >
-                <Text style={styles.loginLink}>Sign in</Text>
+                <Text style={styles.loginLink}>Login</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -379,7 +409,18 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '90%',
     maxWidth: 400,
-    maxHeight: '90%',
+    maxHeight: '80%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   closeButton: {
     position: 'absolute',
@@ -388,11 +429,12 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    marginTop: 16,
+    flex: 1,
   },
   logo: {
-    height: 48,
-    width: 'auto',
+    width: 120,
+    height: 60,
+    marginBottom: 16,
     alignSelf: 'center',
   },
   headline: {
@@ -400,13 +442,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#111827',
     textAlign: 'center',
-    marginTop: 16,
+    marginBottom: 24,
   },
   stepsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 24,
+    marginBottom: 32,
   },
   stepContainer: {
     flexDirection: 'row',
@@ -441,30 +483,27 @@ const styles = StyleSheet.create({
   },
   socialButtons: {
     width: '100%',
-    gap: 16,
-    marginTop: 24,
+    marginBottom: 20,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    minHeight: 48,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   googleButton: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   twitchButton: {
     backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   googleButtonText: {
-    color: '#111827',
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -479,7 +518,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   separatorLine: {
     flex: 1,
@@ -487,34 +526,47 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   separatorText: {
-    marginHorizontal: 12,
-    color: '#9CA3AF',
+    marginHorizontal: 16,
+    color: '#6B7280',
     fontSize: 14,
-    fontWeight: '600',
   },
   form: {
     width: '100%',
+  },
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
   },
   inputContainer: {
     marginBottom: 16,
   },
   input: {
+    width: '100%',
+    height: 48,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
   },
   passwordInput: {
     flex: 1,
+    borderWidth: 0,
   },
   eyeIcon: {
-    position: 'absolute',
-    right: 12,
+    padding: 12,
   },
   errorText: {
     color: '#EF4444',
@@ -525,103 +577,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 24,
-    gap: 16,
   },
-  button: {
+  prevButton: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    height: 48,
     borderRadius: 8,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    backgroundColor: '#9147ff',
-  },
-  secondaryButton: {
-    backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButtonText: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  verificationStep: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  verificationTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  verificationText: {
-    color: '#6B7280',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  signInContainer: {
-    flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
-  },
-  signInText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  signInLink: {
-    color: '#9147ff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginRight: 8,
   },
   nextButton: {
-    backgroundColor: '#9147ff',
-    padding: 12,
+    flex: 1,
+    height: 48,
     borderRadius: 8,
+    backgroundColor: '#9147ff',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 8,
+  },
+  prevButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
   },
   nextButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  backButton: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 12,
+  submitButton: {
+    flex: 1,
+    height: 48,
     borderRadius: 8,
+    backgroundColor: '#9147ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
-  backButtonText: {
-    color: '#111827',
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  stepButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
+  reviewContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
   },
-  passwordToggle: {
-    position: 'absolute',
-    right: 12,
+  reviewItem: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  reviewLabel: {
+    width: 80,
+    color: '#6B7280',
+    fontSize: 14,
+  },
+  reviewValue: {
+    flex: 1,
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '500',
   },
   loginContainer: {
     flexDirection: 'row',
@@ -635,18 +657,6 @@ const styles = StyleSheet.create({
   loginLink: {
     color: '#9147ff',
     fontSize: 14,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#9147ff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    flex: 1,
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 16,
     fontWeight: '600',
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { StrictMode } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ModalProvider } from './src/context/ModalContext';
@@ -13,36 +13,38 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <ModalProvider>
-        <Stack.Navigator initialRouteName="Landing">
-          <Stack.Screen 
-            name="Landing" 
-            component={LandingPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Login" 
-            component={Login}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Register" 
-            component={Register}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Dashboard" 
-            component={Dashboard}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="UserProfile" 
-            component={UserProfile}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      </ModalProvider>
-    </NavigationContainer>
+    <StrictMode>
+      <NavigationContainer>
+        <ModalProvider>
+          <Stack.Navigator initialRouteName="Landing">
+            <Stack.Screen 
+              name="Landing" 
+              component={LandingPage}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Login" 
+              component={Login}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Register" 
+              component={Register}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Dashboard" 
+              component={Dashboard}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="UserProfile" 
+              component={UserProfile}
+              options={{ headerShown: false }}
+            />
+          </Stack.Navigator>
+        </ModalProvider>
+      </NavigationContainer>
+    </StrictMode>
   );
 } 

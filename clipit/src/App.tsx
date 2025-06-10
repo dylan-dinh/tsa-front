@@ -5,37 +5,56 @@ import { ModalProvider } from './context/ModalContext';
 import LandingPage from './components/Landing';
 import Dashboard from './components/Dashboard';
 import UserProfile from './components/UserProfile';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
+// Wrapper component pour le ModalProvider
+const AppWithProviders = () => {
   return (
-    <NavigationContainer>
+    <SafeAreaProvider>
       <ModalProvider>
-        <Stack.Navigator initialRouteName="Landing">
-          <Stack.Screen 
-            name="Landing" 
-            component={LandingPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Dashboard" 
-            component={Dashboard}
-            options={{ 
-              headerShown: true,
-              title: 'Dashboard'
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          <Stack.Navigator 
+            initialRouteName="Landing"
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: '#fff',
+              },
+              headerTintColor: '#111827',
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
             }}
-          />
-          <Stack.Screen 
-            name="UserProfile" 
-            component={UserProfile}
-            options={{ 
-              headerShown: true,
-              title: 'Profile'
-            }}
-          />
-        </Stack.Navigator>
+          >
+            <Stack.Screen 
+              name="Landing" 
+              component={LandingPage}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Dashboard" 
+              component={Dashboard}
+              options={{ 
+                headerShown: true,
+                title: 'Dashboard'
+              }}
+            />
+            <Stack.Screen 
+              name="UserProfile" 
+              component={UserProfile}
+              options={{ 
+                headerShown: true,
+                title: 'Profile'
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
       </ModalProvider>
-    </NavigationContainer>
+    </SafeAreaProvider>
   );
-} 
+};
+
+export default AppWithProviders; 

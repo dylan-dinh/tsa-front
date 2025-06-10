@@ -3,7 +3,7 @@
 //test git status
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, SafeAreaView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,6 +30,8 @@ const LandingPage = () => {
   const { isLoginModalOpen, isRegisterModalOpen, openLoginModal, openRegisterModal, closeLoginModal, closeRegisterModal } = useModal();
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
   const [isTwitchAuthOpen, setIsTwitchAuthOpen] = useState(false);
+  const { width, height } = Dimensions.get('window');
+  const isMobile = width < 768;
 
   const handleGoogleSignUp = () => {
     setIsGoogleAuthOpen(true);
@@ -56,121 +58,147 @@ const LandingPage = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Left: Logo Section */}
-      <View style={styles.logoSection}>
-        <Image
-          source={require('../../assets/ClipIt_logo.jpeg')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
+    <SafeAreaView style={styles.container}>
+      <View style={[styles.content, isMobile && styles.contentMobile]}>
+        {/* Logo Section */}
+        <View style={[styles.logoSection, isMobile && styles.logoSectionMobile]}>
+          <Image
+            source={require('../../assets/ClipIt_logo.jpeg')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
 
-      {/* Right: Content Section */}
-      <View style={styles.contentSection}>
-        <View style={styles.contentContainer}>
-          {/* Headline */}
-          <Text style={styles.headline}>
-            Share your best. Connect with the rest.
-          </Text>
+        {/* Content Section */}
+        <View style={[styles.contentSection, isMobile && styles.contentSectionMobile]}>
+          <View style={styles.contentContainer}>
+            {/* Headline */}
+            <Text style={styles.headline}>
+              Share your best. Connect with the rest.
+            </Text>
 
-          {/* Navigation Buttons for Testing */}
-          <View style={styles.devButtons}>
+            {/* Navigation Buttons for Testing */}
+            <View style={styles.devButtons}>
+              <TouchableOpacity
+                onPress={handleDashboardNavigation}
+                style={[styles.button, styles.devButton]}
+              >
+                <MaterialCommunityIcons name="view-dashboard" size={22} color="#9147ff" />
+                <Text style={styles.devButtonText}>Go to Dashboard</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleUserProfileNavigation}
+                style={[styles.button, styles.devButton]}
+              >
+                <MaterialCommunityIcons name="account" size={22} color="#9147ff" />
+                <Text style={styles.devButtonText}>Go to Profile</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Sign Up Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                onPress={handleGoogleSignUp}
+                style={[styles.button, styles.googleButton]}
+              >
+                <GoogleIcon size={22} />
+                <Text style={styles.googleButtonText}>Sign up with Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleTwitchSignUp}
+                style={[styles.button, styles.twitchButton]}
+              >
+                <MaterialCommunityIcons name="twitch" size={22} color="#9147ff" />
+                <Text style={styles.twitchButtonText}>Sign up with Twitch</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* OR Separator */}
+            <View style={styles.separator}>
+              <View style={styles.separatorLine} />
+              <Text style={styles.separatorText}>OR</Text>
+              <View style={styles.separatorLine} />
+            </View>
+
+            {/* Create Account Button */}
             <TouchableOpacity
-              onPress={handleDashboardNavigation}
-              style={[styles.button, styles.devButton]}
+              onPress={handleCreateAccount}
+              style={[styles.button, styles.createAccountButton]}
             >
-              <MaterialCommunityIcons name="view-dashboard" size={22} color="#9147ff" />
-              <Text style={styles.devButtonText}>Go to Dashboard</Text>
+              <Text style={styles.createAccountButtonText}>Create an account</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleUserProfileNavigation}
-              style={[styles.button, styles.devButton]}
-            >
-              <MaterialCommunityIcons name="account" size={22} color="#9147ff" />
-              <Text style={styles.devButtonText}>Go to Profile</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Sign Up Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              onPress={handleGoogleSignUp}
-              style={[styles.button, styles.googleButton]}
-            >
-              <GoogleIcon size={22} />
-              <Text style={styles.googleButtonText}>Sign up with Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleTwitchSignUp}
-              style={[styles.button, styles.twitchButton]}
-            >
-              <MaterialCommunityIcons name="twitch" size={22} color="#9147ff" />
-              <Text style={styles.twitchButtonText}>Sign up with Twitch</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* OR Separator */}
-          <View style={styles.separator}>
-            <View style={styles.separatorLine} />
-            <Text style={styles.separatorText}>OR</Text>
-            <View style={styles.separatorLine} />
-          </View>
-
-          {/* Create Account Button */}
-          <TouchableOpacity
-            onPress={handleCreateAccount}
-            style={[styles.button, styles.createAccountButton]}
-          >
-            <Text style={styles.createAccountButtonText}>Create an account</Text>
-          </TouchableOpacity>
-
-          {/* Login Section */}
-          <View style={styles.loginSection}>
-            <Text style={styles.loginText}>Already signed in?</Text>
-            <TouchableOpacity
-              onPress={handleLogin}
-              style={[styles.button, styles.loginButton]}
-            >
-              <Text style={styles.loginButtonText}>Login</Text>
-            </TouchableOpacity>
+            {/* Login Section */}
+            <View style={styles.loginSection}>
+              <Text style={styles.loginText}>Already signed in?</Text>
+              <TouchableOpacity
+                onPress={handleLogin}
+                style={[styles.button, styles.loginButton]}
+              >
+                <Text style={styles.loginButtonText}>Login</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
 
       {/* Modals */}
-      <Login isOpen={isLoginModalOpen} onClose={closeLoginModal} />
-      <Register isOpen={isRegisterModalOpen} onClose={closeRegisterModal} />
-      <SocialAuth 
-        isOpen={isGoogleAuthOpen} 
-        onClose={() => setIsGoogleAuthOpen(false)} 
-        provider="google" 
-      />
-      <SocialAuth 
-        isOpen={isTwitchAuthOpen} 
-        onClose={() => setIsTwitchAuthOpen(false)} 
-        provider="twitch" 
-      />
-    </View>
+      {isLoginModalOpen && (
+        <Login 
+          isOpen={isLoginModalOpen} 
+          onClose={closeLoginModal} 
+        />
+      )}
+      {isRegisterModalOpen && (
+        <Register 
+          isOpen={isRegisterModalOpen} 
+          onClose={closeRegisterModal} 
+        />
+      )}
+      {isGoogleAuthOpen && (
+        <SocialAuth 
+          isOpen={isGoogleAuthOpen} 
+          onClose={() => setIsGoogleAuthOpen(false)} 
+          provider="google" 
+        />
+      )}
+      {isTwitchAuthOpen && (
+        <SocialAuth 
+          isOpen={isTwitchAuthOpen} 
+          onClose={() => setIsTwitchAuthOpen(false)} 
+          provider="twitch" 
+        />
+      )}
+    </SafeAreaView>
   );
 };
 
 const { width, height } = Dimensions.get('window');
+const isMobile = width < 768;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
     backgroundColor: '#fff',
   },
+  content: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  contentMobile: {
+    flexDirection: 'column',
+  },
   logoSection: {
-    width: '50%',
-    height: height,
+    width: isMobile ? '100%' : '50%',
+    height: isMobile ? height * 0.3 : height,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  logoSectionMobile: {
+    height: height * 0.3,
   },
   logo: {
     width: '90%',
@@ -178,11 +206,14 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   contentSection: {
-    width: '50%',
-    height: height,
+    width: isMobile ? '100%' : '50%',
+    height: isMobile ? height * 0.7 : height,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  contentSectionMobile: {
+    height: height * 0.7,
   },
   contentContainer: {
     width: '100%',
@@ -228,14 +259,17 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     minHeight: 48,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   googleButton: {
     backgroundColor: '#fff',
@@ -247,13 +281,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
-  googleIcon: {
-    width: 22,
-    height: 22,
-    marginRight: 8,
-  },
   googleButtonText: {
-    color: '#111827',
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -275,14 +304,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   separatorText: {
-    marginHorizontal: 12,
-    color: '#9ca3af',
+    marginHorizontal: 16,
+    color: '#6b7280',
     fontSize: 14,
-    fontWeight: '600',
   },
   createAccountButton: {
     backgroundColor: '#9147ff',
-    marginBottom: 32,
+    borderWidth: 0,
   },
   createAccountButtonText: {
     color: '#fff',
@@ -290,38 +318,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   loginSection: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
   },
   loginText: {
     color: '#6b7280',
     fontSize: 14,
-    marginBottom: 16,
+    marginRight: 8,
   },
   loginButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    width: '100%',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    padding: 0,
+    margin: 0,
+    minHeight: 0,
   },
   loginButtonText: {
     color: '#9147ff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-  },
-  modal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButton: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 
