@@ -7,7 +7,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useModal } from '../context/ModalContext';
+import { useAuth } from '../context/AuthContext';
 import GoogleIcon from './GoogleIcon';
+import { register } from '../services/api';
 import { RootStackParamList } from '../types/navigation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -25,6 +27,10 @@ interface RegisterProps {
 const registerSchema = Yup.object().shape({
   firstName: Yup.string().required('First name is required'),
   lastName: Yup.string().required('Last name is required'),
+  displayName: Yup.string()
+    .min(3, 'Display name must be at least 3 characters')
+    .max(50, 'Display name must be less than 50 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/, 'Display name can only contain letters, numbers, hyphens, and underscores'),
   email: Yup.string()
     .email('Invalid email')
     .required('Email is required')
@@ -56,17 +62,30 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose })
   const [currentStep, setCurrentStep] = useState(1);
   const navigation = useNavigation<NavigationProp>();
   const { openLoginModal } = useModal();
+  const { login } = useAuth();
 
   const handleRegister = async (values: any) => {
     setIsLoading(true);
     try {
-      // Here you would implement the actual registration logic
-      // For now, we'll simulate a successful registration
-      await SecureStore.setItemAsync('userToken', 'dummy-token');
-      navigation.navigate('Dashboard');
+      // Map form values to API format
+      const userData = {
+        email: values.email,
+        username: values.displayName || `user_${Date.now()}`, // Use display name as username if provided
+        first_name: values.firstName,
+        last_name: values.lastName,
+        display_name: values.displayName,
+        password: values.password,
+      };
+
+      const response = await register(userData);
+      
+      // For registration, we might not get a token back immediately due to email verification
+      // Just show success and redirect to login
+      Alert.alert('Success', 'Registration successful! Please check your email for verification.');
       onClose();
-    } catch (error) {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+      openLoginModal();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -197,6 +216,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose })
               initialValues={{
                 firstName: '',
                 lastName: '',
+                displayName: '',
                 email: '',
                 age: '',
                 password: '',
@@ -236,6 +256,21 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose })
                         {touched.lastName && errors.lastName && (
                           <Text style={styles.errorText}>{errors.lastName}</Text>
                         )}
+                      </View>
+
+                      <View style={styles.inputContainer}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Display Name (Gamer Tag)"
+                          onChangeText={handleChange('displayName')}
+                          onBlur={handleBlur('displayName')}
+                          value={values.displayName}
+                          placeholderTextColor="#9CA3AF"
+                        />
+                        {touched.displayName && errors.displayName && (
+                          <Text style={styles.errorText}>{errors.displayName}</Text>
+                        )}
+                        <Text style={styles.helpText}>This is how others will see you in the app</Text>
                       </View>
 
                       <View style={styles.inputContainer}>
@@ -352,6 +387,10 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose })
                           <Text style={styles.reviewValue}>
                             {values.firstName} {values.lastName}
                           </Text>
+                        </View>
+                        <View style={styles.reviewItem}>
+                          <Text style={styles.reviewLabel}>Display Name:</Text>
+                          <Text style={styles.reviewValue}>{values.displayName}</Text>
                         </View>
                         <View style={styles.reviewItem}>
                           <Text style={styles.reviewLabel}>Age:</Text>
@@ -677,5 +716,10 @@ const styles = StyleSheet.create({
     color: '#9147ff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  helpText: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginTop: 4,
   },
 });

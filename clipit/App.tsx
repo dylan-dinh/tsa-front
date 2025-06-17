@@ -2,6 +2,7 @@ import React, { StrictMode } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ModalProvider } from './src/context/ModalContext';
+import { AuthProvider } from './src/context/AuthContext';
 import LandingPage from './src/components/Landing';
 import Dashboard from './src/components/Dashboard';
 import UserProfile from './src/components/UserProfile';
@@ -46,11 +47,13 @@ function AppNavigator() {
 export default function App() {
   return (
     <StrictMode>
-      <NavigationContainer>
-        <ModalProvider>
-          <AppNavigator />
-        </ModalProvider>
-      </NavigationContainer>
+      <AuthProvider>
+        <NavigationContainer>
+          <ModalProvider>
+            <AppNavigator />
+          </ModalProvider>
+        </NavigationContainer>
+      </AuthProvider>
     </StrictMode>
   );
 } 

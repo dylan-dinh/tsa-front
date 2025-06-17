@@ -2,7 +2,7 @@
 // npm install @expo/vector-icons react-icons
 //test git status
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, SafeAreaView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,8 +10,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LoginModal } from './Login';
 import { RegisterModal } from './Register';
 import SocialAuth from './SocialAuth';
+import TwitchAuthTester from './TwitchAuthTester';
+import OAuthCallback from './OAuthCallback';
 import GoogleIcon from './GoogleIcon';
 import { useModal } from '../context/ModalContext';
+import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types/navigation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
@@ -26,8 +29,20 @@ interface SocialAuthProps extends ModalProps {
 }
 
 const LandingPage = () => {
+  // Check for OAuth callback BEFORE any hooks
+  const shouldShowOAuthCallback = Platform.OS === 'web' ? (() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('code') !== null || urlParams.get('token') !== null;
+  })() : false;
+
+  // If there's an OAuth callback, show the callback component immediately
+  if (shouldShowOAuthCallback) {
+    return <OAuthCallback />;
+  }
+
   const navigation = useNavigation<NavigationProp>();
   const { isLoginModalOpen, isRegisterModalOpen, openLoginModal, openRegisterModal, closeLoginModal, closeRegisterModal } = useModal();
+  const { isAuthenticated } = useAuth();
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
   const [isTwitchAuthOpen, setIsTwitchAuthOpen] = useState(false);
   
@@ -277,6 +292,9 @@ const LandingPage = () => {
               </TouchableOpacity>
             </View>
 
+            {/* Twitch Auth Tester */}
+            <TwitchAuthTester />
+
             {/* Sign Up Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -291,7 +309,7 @@ const LandingPage = () => {
                 onPress={handleTwitchSignUp}
                 style={[styles.button, styles.twitchButton]}
               >
-                <MaterialCommunityIcons name="twitch" size={22} color="#9147ff" />
+                <MaterialCommunityIcons name="twitch" size={22} color="white" />
                 <Text style={styles.twitchButtonText}>Sign up with Twitch</Text>
               </TouchableOpacity>
             </View>
