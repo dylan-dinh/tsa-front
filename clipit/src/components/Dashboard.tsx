@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Platform, RefreshControl } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
 import { RootStackParamList } from '../types/navigation';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { ContentCard } from './ContentCard';
+import { LoadingSpinner } from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
+import { EmptyState } from './EmptyState';
+import { fetchContent, ContentItem } from '../services/contentService';
+import Search from './Search';
+import Explore from './Explore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -12,9 +20,24 @@ const Dashboard = () => {
   const navigation = useNavigation<NavigationProp>();
   const [activeTab, setActiveTab] = useState('People');
   const [activeNav, setActiveNav] = useState('Home');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { width } = Dimensions.get('window');
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
+
+  // Infinite scroll hook
+  const {
+    data: content,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+    refresh,
+  } = useInfiniteScroll<ContentItem>({
+    fetchData: fetchContent,
+    pageSize: 10
+  });
 
   const handleLogout = async () => {
     try {
@@ -34,6 +57,12 @@ const Dashboard = () => {
     navigation.navigate('Landing');
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setIsRefreshing(false);
+  };
+
   const navigationItems = [
     { name: 'Home', icon: 'home-outline', activeIcon: 'home' },
     { name: 'Search', icon: 'magnify', activeIcon: 'magnify' },
@@ -50,27 +79,6 @@ const Dashboard = () => {
     { id: 4, username: 'streamer_x', avatar: 'https://i.pravatar.cc/150?img=4' },
     { id: 5, username: 'clip_master', avatar: 'https://i.pravatar.cc/150?img=5' },
     { id: 6, username: 'content_king', avatar: 'https://i.pravatar.cc/150?img=6' },
-  ];
-
-  const feedPosts = [
-    {
-      id: 1,
-      username: 'john_doe',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      image: 'https://picsum.photos/600/600?random=1',
-      caption: 'Just had an amazing gaming session! Check out this epic clutch moment 🎮✨',
-      likes: 234,
-      time: '2 hours ago'
-    },
-    {
-      id: 2,
-      username: 'jane_smith',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-      image: 'https://picsum.photos/600/600?random=2',
-      caption: 'New streaming setup is finally ready! What do you think? 💜',
-      likes: 156,
-      time: '4 hours ago'
-    },
   ];
 
   const Sidebar = () => (
@@ -153,68 +161,113 @@ const Dashboard = () => {
     </View>
   );
 
-  const PostCard = ({ post }: { post: any }) => (
-    <View style={styles.postCard}>
-      {/* Post Header */}
-      <View style={styles.postHeader}>
-        <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
-        <View style={styles.postUserInfo}>
-          <Text style={styles.postUsername}>{post.username}</Text>
-          <Text style={styles.postTime}>{post.time}</Text>
-        </View>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="dots-horizontal" size={24} color="#6b7280" />
-        </TouchableOpacity>
-      </View>
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    
+    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
+      if (hasMore && !loading) {
+        loadMore();
+      }
+    }
+  };
 
-      {/* Post Image */}
-      <Image source={{ uri: post.image }} style={styles.postImage} />
+  const renderContent = () => {
+    if (error) {
+      return <ErrorMessage message={error} onClose={() => refresh()} />;
+    }
 
-      {/* Post Actions */}
-      <View style={styles.postActions}>
-        <View style={styles.postActionLeft}>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="heart-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="comment-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="share-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="bookmark-outline" size={24} color="#111827" />
-        </TouchableOpacity>
-      </View>
+    if (content.length === 0 && !loading) {
+      return (
+        <EmptyState
+          title="No content found"
+          message="Start exploring to see some amazing clips!"
+          actionText="Refresh"
+          onAction={handleRefresh}
+        />
+      );
+    }
 
-      {/* Post Info */}
-      <View style={styles.postInfo}>
-        <Text style={styles.postLikes}>{post.likes} likes</Text>
-        <Text style={styles.postCaption}>
-          <Text style={styles.postCaptionUsername}>{post.username}</Text> {post.caption}
-        </Text>
-      </View>
-    </View>
-  );
+    return (
+      <>
+        {content.map((item) => (
+          <ContentCard
+            key={item.id}
+            id={item.id}
+            title={item.title}
+            description={item.description}
+            imageUrl={item.imageUrl}
+            author={item.author}
+            timestamp={item.timestamp}
+            likes={item.likes}
+            views={item.views}
+          />
+        ))}
+        
+        {loading && hasMore && (
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner />
+          </View>
+        )}
+      </>
+    );
+  };
+
+  const renderMainContent = () => {
+    switch (activeNav) {
+      case 'Search':
+        return <Search />;
+      case 'Explore':
+        return <Explore />;
+      case 'Messages':
+        return (
+          <View style={styles.placeholderContainer}>
+            <MaterialCommunityIcons name="message" size={64} color="#d1d5db" />
+            <Text style={styles.placeholderTitle}>Messages</Text>
+            <Text style={styles.placeholderText}>Chat with friends coming soon!</Text>
+          </View>
+        );
+      case 'Notifications':
+        return (
+          <View style={styles.placeholderContainer}>
+            <MaterialCommunityIcons name="bell" size={64} color="#d1d5db" />
+            <Text style={styles.placeholderTitle}>Notifications</Text>
+            <Text style={styles.placeholderText}>Stay updated with notifications!</Text>
+          </View>
+        );
+      default:
+        return (
+          <>
+            <FeedTabs />
+            <ScrollView 
+              style={styles.feedContainer}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.feedContent}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  colors={['#9147ff']}
+                  tintColor="#9147ff"
+                />
+              }
+            >
+              <FollowedUsersCarousel />
+              {renderContent()}
+            </ScrollView>
+          </>
+        );
+    }
+  };
 
   return (
     <View style={styles.container}>
       {!isMobile && <Sidebar />}
       
       <View style={[styles.mainContent, isMobile && styles.mainContentMobile]}>
-        <FeedTabs />
-        <ScrollView 
-          style={styles.feedContainer}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.feedContent}
-        >
-          <FollowedUsersCarousel />
-          
-          {feedPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </ScrollView>
+        {renderMainContent()}
       </View>
 
       {/* Mobile Bottom Navigation */}
@@ -374,79 +427,28 @@ const styles = StyleSheet.create({
     color: '#111827',
     textAlign: 'center',
   },
-  postCard: {
-    backgroundColor: '#ffffff',
-    marginBottom: 24,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginHorizontal: isMobile ? 16 : 0,
-  },
-  postHeader: {
-    flexDirection: 'row',
+  loadingContainer: {
+    paddingVertical: 20,
     alignItems: 'center',
-    padding: 16,
   },
-  postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  postUserInfo: {
+  placeholderContainer: {
     flex: 1,
-    marginLeft: 12,
-  },
-  postUsername: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  postTime: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  postImage: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  postActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 40,
   },
-  postActionLeft: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    marginRight: 16,
-  },
-  postInfo: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  postLikes: {
-    fontSize: 14,
+  placeholderTitle: {
+    fontSize: 24,
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 4,
+    marginTop: 16,
   },
-  postCaption: {
-    fontSize: 14,
-    color: '#111827',
-    lineHeight: 20,
-  },
-  postCaptionUsername: {
-    fontWeight: '600',
+  placeholderText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 32,
   },
   bottomNav: {
     position: 'absolute',

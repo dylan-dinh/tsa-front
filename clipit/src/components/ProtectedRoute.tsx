@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '../hooks/useAuth';
 
 type RootStackParamList = {
   Login: undefined;
@@ -16,25 +16,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading } = useAuth();
   const navigation = useNavigation<NavigationProp>();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('userToken');
-        if (!token) {
-          navigation.replace('Login');
-        }
-      } catch (error) {
-        navigation.replace('Login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [navigation]);
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigation.replace('Login');
+    }
+  }, [isAuthenticated, isLoading, navigation]);
 
   if (isLoading) {
     return (
@@ -42,6 +31,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         <ActivityIndicator size="large" color="#9147ff" />
       </View>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Sera redirigé vers Login
   }
 
   return <>{children}</>;

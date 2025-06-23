@@ -16,6 +16,7 @@ import GoogleIcon from './GoogleIcon';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types/navigation';
+import { JWTTestPanel } from './JWTTestPanel';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
@@ -45,6 +46,7 @@ const LandingPage = () => {
   const { isAuthenticated } = useAuth();
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
   const [isTwitchAuthOpen, setIsTwitchAuthOpen] = useState(false);
+  const [isJWTTestOpen, setIsJWTTestOpen] = useState(false);
   
   const { width, height } = useMemo(() => Dimensions.get('window'), []);
   const isMobile = useMemo(() => width < 768, [width]);
@@ -253,6 +255,14 @@ const LandingPage = () => {
     setIsTwitchAuthOpen(false);
   }, []);
 
+  const handleJWTTest = useCallback(() => {
+    setIsJWTTestOpen(true);
+  }, []);
+
+  const handleCloseJWTTest = useCallback(() => {
+    setIsJWTTestOpen(false);
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.content, isMobile && styles.contentMobile]}>
@@ -289,6 +299,14 @@ const LandingPage = () => {
               >
                 <MaterialCommunityIcons name="account" size={22} color="#9147ff" />
                 <Text style={styles.devButtonText}>Go to Profile</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleJWTTest}
+                style={[styles.button, styles.devButton]}
+              >
+                <MaterialCommunityIcons name="shield-check" size={22} color="#9147ff" />
+                <Text style={styles.devButtonText}>Test JWT Implementation</Text>
               </TouchableOpacity>
             </View>
 
@@ -370,6 +388,12 @@ const LandingPage = () => {
           provider="twitch" 
         />
       )}
+      
+      {/* JWT Test Panel */}
+      <JWTTestPanel 
+        isVisible={isJWTTestOpen} 
+        onClose={handleCloseJWTTest} 
+      />
     </SafeAreaView>
   );
 };

@@ -9,6 +9,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useModal } from '../context/ModalContext';
 import GoogleIcon from './GoogleIcon';
 import { RootStackParamList } from '../types/navigation';
+import { login } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,17 +29,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation<NavigationProp>();
   const { openRegisterModal } = useModal();
+  const { login: authLogin } = useAuth();
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setIsLoading(true);
     try {
-      // Here you would implement the actual login logic
-      // For now, we'll simulate a successful login
-      await SecureStore.setItemAsync('userToken', 'dummy-token');
+      // Appeler l'API de login avec vérification JWT
+      const response = await login(values.email, values.password);
+      
+      // Utiliser le hook d'authentification pour gérer le login
+      await authLogin(response.token, response.user);
+
       navigation.navigate('Dashboard');
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'Login failed. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      Alert.alert('Login Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
