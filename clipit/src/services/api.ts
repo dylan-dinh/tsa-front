@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { RegisterResponse, Streamer, TwitchLoginResponse } from '../types';
-import { User } from '../types/index';
+import { verifyJWT, JWTPayload } from '../utils/jwt';
+import * as SecureStore from 'expo-secure-store';
 
 const API_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8080") + "/api"
 
@@ -11,17 +12,91 @@ const api = axios.create({
   },
 });
 
-export const login = async (email: string, password: string) => {
+// Intercepteur pour ajouter le token JWT aux requêtes
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+      if (token) {
+        // Vérifier que le token est toujours valide
+        const verification = verifyJWT(token);
+        if (verification.isValid) {
+          config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          // Token invalide, le supprimer
+          await SecureStore.deleteItemAsync('userToken');
+          await SecureStore.deleteItemAsync('userInfo');
+        }
+      }
+    } catch (error) {
+      console.error('Error adding auth token to request:', error);
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour gérer les réponses d'erreur
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      // Token expiré ou invalide, nettoyer le stockage
+      try {
+        await SecureStore.deleteItemAsync('userToken');
+        await SecureStore.deleteItemAsync('userInfo');
+      } catch (cleanupError) {
+        console.error('Error cleaning up invalid token:', cleanupError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
+
+export const login = async (email: string, password: string): Promise<LoginResponse> => {
   try {
     const response = await api.post('/users/login', { email, password });
-    return response.data;
-  } catch (error: any) {
+
+    const { token, user } = response.data;
+
+    // Vérifier la signature et la validité du JWT
+    const jwtVerification = verifyJWT(token);
+    
+    if (!jwtVerification.isValid) {
+      throw new Error(jwtVerification.error || 'Invalid JWT token received from server');
+    }
+
+    // Vérifier que les informations utilisateur correspondent
+    const tokenPayload = jwtVerification.payload as JWTPayload;
+    if (tokenPayload.email !== email) {
+      throw new Error('Token email does not match login email');
+    }
+
+    return { token, user };
+  } catch (error: unknown) {
+
     if (axios.isAxiosError(error) && error.response) {
       if (error.response.status === 400) {
         throw new Error(error.response.data.message || 'Invalid email or password');
       }
+      if (error.response.status === 401) {
+        throw new Error('Authentication failed. Please check your credentials.');
+      }
+      if (error.response.status === 500) {
+        throw new Error('Server error. Please try again later.');
+      }
     }
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unexpected error occurred');
   }
 };
 
