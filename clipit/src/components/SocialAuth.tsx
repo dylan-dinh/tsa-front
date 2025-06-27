@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity, Image, Modal, Alert, StyleSheet } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '../context/AuthContext';
 import GoogleIcon from './GoogleIcon';
 import { RootStackParamList } from '../types/navigation';
 
@@ -19,21 +20,41 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ isOpen, onClose, provider }) =>
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation<NavigationProp>();
+  const { login } = useAuth();
 
   if (!isOpen) return null;
 
   const handleAuth = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate successful authentication
-      await SecureStore.setItemAsync('userToken', `${provider}-oauth-token`);
-      navigation.navigate('Dashboard');
-      onClose();
-    } catch (err) {
-      setError('Authentication failed. Please try again.');
-      Alert.alert('Error', 'Authentication failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (provider === 'twitch') {
+      setIsLoading(true);
+      setError('');
+      
+      try {
+        // For now, let's redirect to the backend OAuth URL directly
+        const authUrl = `${process.env.REACT_APP_BACKEND_URL || "http://localhost:8080"}/api/users/login/twitch`;
+        
+        if (typeof window !== 'undefined') {
+          window.location.href = authUrl;
+        } else {
+          setError('Web authentication not supported on this platform');
+        }
+      } catch (err) {
+        setError('Failed to initiate authentication');
+        setIsLoading(false);
+      }
+    } else if (provider === 'google') {
+      setIsLoading(true);
+      try {
+        // Google authentication placeholder - implement when needed
+        await SecureStore.setItemAsync('userToken', `${provider}-oauth-token`);
+        navigation.navigate('Dashboard');
+        onClose();
+      } catch (err) {
+        setError('Authentication failed. Please try again.');
+        Alert.alert('Error', 'Authentication failed. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -64,6 +85,13 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ isOpen, onClose, provider }) =>
             <Text style={styles.headline}>
               {provider === 'google' ? 'Sign in with Google' : 'Sign in with Twitch'}
             </Text>
+
+            {/* Error Display */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
 
             {/* Auth Button */}
             <TouchableOpacity
@@ -142,6 +170,20 @@ const styles = StyleSheet.create({
     color: '#111827',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    width: '100%',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    textAlign: 'center',
   },
   authButton: {
     width: '100%',

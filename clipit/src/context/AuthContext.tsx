@@ -1,32 +1,128 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { Platform, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { User } from '../types';
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    login: (token: string) => void;
+    user: User | null;
+    login: (token: string, user: User) => void;
     logout: () => void;
     token: string | null;
+    updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+// Storage utilities that work on all platforms
+const storage = {
+    async getItem(key: string): Promise<string | null> {
+        if (Platform.OS === 'web') {
+            return localStorage.getItem(key);
+        } else {
+            return await SecureStore.getItemAsync(key);
+        }
+    },
+    
+    async setItem(key: string, value: string): Promise<void> {
+        if (Platform.OS === 'web') {
+            localStorage.setItem(key, value);
+        } else {
+            await SecureStore.setItemAsync(key, value);
+        }
+    },
+    
+    async removeItem(key: string): Promise<void> {
+        if (Platform.OS === 'web') {
+            localStorage.removeItem(key);
+        } else {
+            await SecureStore.deleteItemAsync(key);
+        }
+    }
+};
 
-    const login = (token: string) => {
+const LoadingScreen: React.FC = () => (
+    <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#9147ff" />
+        <Text style={styles.loadingText}>Loading...</Text>
+    </View>
+);
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [token, setToken] = useState<string | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Load stored authentication data on app start
+    useEffect(() => {
+        const loadStoredAuth = async () => {
+            try {
+                const storedToken = await storage.getItem('token');
+                const storedUserJson = await storage.getItem('user');
+                
+                if (storedToken) {
+                    setToken(storedToken);
+                    setIsAuthenticated(true);
+                }
+                
+                if (storedUserJson) {
+                    const storedUser = JSON.parse(storedUserJson);
+                    setUser(storedUser);
+                }
+            } catch (error) {
+                console.error('Failed to load stored auth:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadStoredAuth();
+    }, []);
+
+    const login = async (token: string, user: User) => {
         setIsAuthenticated(true);
         setToken(token);
-        localStorage.setItem('token', token); // Store token in localStorage
+        setUser(user);
+        
+        try {
+            await storage.setItem('token', token);
+            await storage.setItem('user', JSON.stringify(user));
+        } catch (error) {
+            console.error('Failed to store auth data:', error);
+        }
     };
 
-    const logout = () => {
+    const logout = async () => {
         setIsAuthenticated(false);
         setToken(null);
-        localStorage.removeItem('token'); // Remove token from localStorage
+        setUser(null);
+        
+        try {
+            await storage.removeItem('token');
+            await storage.removeItem('user');
+        } catch (error) {
+            console.error('Failed to remove auth data:', error);
+        }
     };
 
+    const updateUser = async (updatedUser: User) => {
+        setUser(updatedUser);
+        
+        try {
+            await storage.setItem('user', JSON.stringify(updatedUser));
+        } catch (error) {
+            console.error('Failed to update user data:', error);
+        }
+    };
+
+    // Don't render children until we've loaded stored auth
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
+
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout, token }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, login, logout, token, updateUser }}>
             {children}
         </AuthContext.Provider>
     );
@@ -39,3 +135,17 @@ export const useAuth = (): AuthContextType => {
     }
     return context;
 };
+
+const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#6B7280',
+    },
+});
