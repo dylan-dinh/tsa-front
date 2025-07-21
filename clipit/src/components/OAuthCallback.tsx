@@ -58,14 +58,14 @@ const OAuthCallback: React.FC = () => {
                     setStatus('success');
                     setMessage('Authentication successful! Redirecting...');
                     
-                    // Clean up URL and redirect to home
-                    window.history.replaceState({}, document.title, '/');
-                    console.log('OAuth Callback - About to redirect to home (token case)');
+                    // Clean up URL and navigate to dashboard using React Navigation
+                    window.history.replaceState({}, document.title, '/dashboard');
+                    console.log('OAuth Callback - About to navigate to dashboard (token case)');
                     
                     setTimeout(() => {
-                        // Force redirect to home page
-                        console.log('OAuth Callback - Executing redirect to home (token case)');
-                        window.location.href = '/';
+                        // Navigate to dashboard using React Navigation
+                        console.log('OAuth Callback - Executing navigation to dashboard (token case)');
+                        navigation.navigate('Dashboard');
                     }, 1000);
                     
                 } else if (code) {
@@ -95,14 +95,14 @@ const OAuthCallback: React.FC = () => {
                     setStatus('success');
                     setMessage('Authentication successful! Redirecting...');
                     
-                    // Clean up URL and redirect to home
-                    window.history.replaceState({}, document.title, '/');
-                    console.log('OAuth Callback - About to redirect to home (code case)');
+                    // Clean up URL and navigate to dashboard using React Navigation
+                    window.history.replaceState({}, document.title, '/dashboard');
+                    console.log('OAuth Callback - About to navigate to dashboard (code case)');
                     
                     setTimeout(() => {
-                        // Force redirect to home page
-                        console.log('OAuth Callback - Executing redirect to home (code case)');
-                        window.location.href = '/';
+                        // Navigate to dashboard using React Navigation
+                        console.log('OAuth Callback - Executing navigation to dashboard (code case)');
+                        navigation.navigate('Dashboard');
                     }, 1000);
                     
                 } else {

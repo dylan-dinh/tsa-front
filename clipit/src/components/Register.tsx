@@ -4,7 +4,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as SecureStore from 'expo-secure-store';
+import storage from '../services/storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useModal } from '../context/ModalContext';
 import { useAuth } from '../context/AuthContext';
@@ -93,7 +93,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose })
 
   const handleGoogleRegister = async () => {
     try {
-      await SecureStore.setItemAsync('userToken', 'google-oauth-token');
+              await storage.setItem('token', 'google-oauth-token');
       navigation.navigate('Dashboard');
       onClose();
     } catch (error) {
@@ -103,7 +103,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose })
 
   const handleTwitchRegister = async () => {
     try {
-      await SecureStore.setItemAsync('userToken', 'twitch-oauth-token');
+              await storage.setItem('token', 'twitch-oauth-token');
       navigation.navigate('Dashboard');
       onClose();
     } catch (error) {

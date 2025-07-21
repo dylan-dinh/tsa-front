@@ -3,8 +3,8 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity, Image, Modal, Alert, StyleSheet } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../context/AuthContext';
+import storage from '../services/storage';
 import GoogleIcon from './GoogleIcon';
 import { RootStackParamList } from '../types/navigation';
 
@@ -46,7 +46,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ isOpen, onClose, provider }) =>
       setIsLoading(true);
       try {
         // Google authentication placeholder - implement when needed
-        await SecureStore.setItemAsync('userToken', `${provider}-oauth-token`);
+        await storage.setItem('token', `${provider}-oauth-token`);
         navigation.navigate('Dashboard');
         onClose();
       } catch (err) {

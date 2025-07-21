@@ -4,7 +4,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as SecureStore from 'expo-secure-store';
+import storage from '../services/storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useModal } from '../context/ModalContext';
 import GoogleIcon from './GoogleIcon';
@@ -33,7 +33,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     try {
       // Here you would implement the actual login logic
       // For now, we'll simulate a successful login
-      await SecureStore.setItemAsync('userToken', 'dummy-token');
+              await storage.setItem('token', 'dummy-token');
       navigation.navigate('Dashboard');
       onClose();
     } catch (error) {
@@ -45,7 +45,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   const handleGoogleLogin = async () => {
     try {
-      await SecureStore.setItemAsync('userToken', 'google-oauth-token');
+              await storage.setItem('token', 'google-oauth-token');
       navigation.navigate('Dashboard');
       onClose();
     } catch (error) {
@@ -55,7 +55,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   const handleTwitchLogin = async () => {
     try {
-      await SecureStore.setItemAsync('userToken', 'twitch-oauth-token');
+              await storage.setItem('token', 'twitch-oauth-token');
       navigation.navigate('Dashboard');
       onClose();
     } catch (error) {

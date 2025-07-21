@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, Dimensions, Image, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as SecureStore from 'expo-secure-store';
 import { RootStackParamList } from '../types/navigation';
+import { useClips } from '../hooks/useClips';
+import ClipCard from './ClipCard';
+import ClipPost from './ClipPost';
+import { Clip } from '../types';
+import storage from '../services/storage';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -12,17 +16,81 @@ const Dashboard = () => {
   const navigation = useNavigation<NavigationProp>();
   const [activeTab, setActiveTab] = useState('People');
   const [activeNav, setActiveNav] = useState('Home');
+  const [token, setToken] = useState<string | null>(null);
   const { width } = Dimensions.get('window');
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
+  
+  // TODO: Replace with actual user's followed games
+  const mockGameIds = ['509658', '21779', '516575', '32399', '1826300051']; // Mock game IDs for testing
+  
+  const {
+    clips,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loadClips,
+    loadMore,
+    refresh,
+    clearCache
+  } = useClips({
+    gameIds: mockGameIds,
+    token: token || '',
+    pageSize: 20,
+    autoLoad: true // Let the hook handle loading
+  });
+  
+  const flatListRef = useRef<FlatList>(null);
+
+  // Helper function to chunk array into groups of n
+  const chunk = <T,>(array: T[], size: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  };
+
+  // Use individual clips instead of pairs
+
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      try {
+        const storedToken = await storage.getItem('token');
+        if (storedToken) {
+          setToken(storedToken);
+          console.log('Dashboard: Token loaded, ensuring clips are available');
+          // Force a clips load after a short delay to ensure we have data
+          setTimeout(() => {
+            if (clips.length === 0) {
+              console.log('Dashboard: No clips found, forcing load');
+              loadClips();
+            }
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Error loading token:', error);
+      }
+    };
+    loadToken();
+  }, []); // Remove loadClips from dependencies
 
   const handleLogout = async () => {
     try {
-      await SecureStore.deleteItemAsync('userToken');
+      await clearCache();
+      await storage.removeItem('token');
       navigation.navigate('Landing');
     } catch (error) {
       console.error('Error logging out:', error);
     }
+  };
+
+  const handleRefresh = async () => {
+    console.log('Dashboard: Manual refresh triggered');
+    await clearCache();
+    loadClips();
   };
 
   const handleProfileNavigation = () => {
@@ -52,26 +120,33 @@ const Dashboard = () => {
     { id: 6, username: 'content_king', avatar: 'https://i.pravatar.cc/150?img=6' },
   ];
 
-  const feedPosts = [
-    {
-      id: 1,
-      username: 'john_doe',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      image: 'https://picsum.photos/600/600?random=1',
-      caption: 'Just had an amazing gaming session! Check out this epic clutch moment 🎮✨',
-      likes: 234,
-      time: '2 hours ago'
-    },
-    {
-      id: 2,
-      username: 'jane_smith',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-      image: 'https://picsum.photos/600/600?random=2',
-      caption: 'New streaming setup is finally ready! What do you think? 💜',
-      likes: 156,
-      time: '4 hours ago'
-    },
-  ];
+  // Handle clip click
+  const handleClipClick = (clip: Clip) => {
+    console.log('Dashboard: Clip clicked:', {
+      title: clip.Title,
+      url: clip.URL,
+      embed_url: clip.EmbedURL,
+      thumbnail_url: clip.ThumbnailURL
+    });
+    // For now, just log the click. Videos will play inline when in view.
+  };
+
+  // Handle scroll for infinite loading
+  const handleEndReached = () => {
+    if (hasMore && !loadingMore) {
+      console.log('Dashboard: End reached, loading more clips');
+      loadMore();
+    }
+  };
+
+  const renderClip = ({ item, index }: { item: Clip, index: number }) => (
+    <View style={styles.clipPost}>
+      <ClipPost 
+        clip={item}
+        onClick={handleClipClick}
+      />
+    </View>
+  );
 
   const Sidebar = () => (
     <View style={[styles.sidebar, isMobile && styles.sidebarMobile]}>
@@ -109,7 +184,12 @@ const Dashboard = () => {
         ))}
       </View>
 
-      {/* Settings at bottom */}
+      {/* Refresh and Settings at bottom */}
+      <TouchableOpacity style={styles.navItem} onPress={handleRefresh}>
+        <MaterialCommunityIcons name="refresh" size={24} color="#111827" />
+        <Text style={styles.navItemText}>Refresh</Text>
+      </TouchableOpacity>
+      
       <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
         <MaterialCommunityIcons name="cog-outline" size={24} color="#111827" />
         <Text style={styles.navItemText}>Settings</Text>
@@ -153,68 +233,69 @@ const Dashboard = () => {
     </View>
   );
 
-  const PostCard = ({ post }: { post: any }) => (
-    <View style={styles.postCard}>
-      {/* Post Header */}
-      <View style={styles.postHeader}>
-        <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
-        <View style={styles.postUserInfo}>
-          <Text style={styles.postUsername}>{post.username}</Text>
-          <Text style={styles.postTime}>{post.time}</Text>
-        </View>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="dots-horizontal" size={24} color="#6b7280" />
-        </TouchableOpacity>
-      </View>
+  const ClipsFeed = () => {
+    console.log('Dashboard: ClipsFeed rendering', { 
+      clipsCount: clips.length, 
+      loading, 
+      error,
+      hasMore 
+    });
+    
+    return (
+      <View style={styles.clipsContainer}>
+        {loading && clips.length === 0 && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading clips...</Text>
+          </View>
+        )}
+        
+        {error && clips.length === 0 && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error: {error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {clips.length > 0 && (
+          <FlatList
+            ref={flatListRef}
+            data={clips}
+            renderItem={renderClip}
+            keyExtractor={(item, index) => `clip-${index}`}
+            style={styles.clipsFeed}
+            showsVerticalScrollIndicator={false}
+            snapToInterval={Dimensions.get('window').height}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
+            getItemLayout={(data, index) => ({
+              length: Dimensions.get('window').height,
+              offset: Dimensions.get('window').height * index,
+              index,
+            })}
+          />
+        )}
+        
+        {loadingMore && (
+          <View style={styles.loadingMoreContainer}>
+            <Text style={styles.loadingMoreText}>Loading more clips...</Text>
+          </View>
+        )}
+        
 
-      {/* Post Image */}
-      <Image source={{ uri: post.image }} style={styles.postImage} />
-
-      {/* Post Actions */}
-      <View style={styles.postActions}>
-        <View style={styles.postActionLeft}>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="heart-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="comment-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="share-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="bookmark-outline" size={24} color="#111827" />
-        </TouchableOpacity>
       </View>
-
-      {/* Post Info */}
-      <View style={styles.postInfo}>
-        <Text style={styles.postLikes}>{post.likes} likes</Text>
-        <Text style={styles.postCaption}>
-          <Text style={styles.postCaptionUsername}>{post.username}</Text> {post.caption}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
       {!isMobile && <Sidebar />}
       
       <View style={[styles.mainContent, isMobile && styles.mainContentMobile]}>
-        <FeedTabs />
-        <ScrollView 
-          style={styles.feedContainer}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.feedContent}
-        >
-          <FollowedUsersCarousel />
-          
-          {feedPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </ScrollView>
+        <ClipsFeed />
       </View>
 
       {/* Mobile Bottom Navigation */}
@@ -238,6 +319,8 @@ const Dashboard = () => {
           ))}
         </View>
       )}
+
+
     </View>
   );
 };
@@ -305,6 +388,7 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     marginLeft: sidebarWidth,
+    backgroundColor: '#fafafa',
   },
   mainContentMobile: {
     marginLeft: 0,
@@ -341,12 +425,13 @@ const styles = StyleSheet.create({
   },
   feedContainer: {
     flex: 1,
+    width: '100%',
+    maxWidth: '100%',
   },
   feedContent: {
-    maxWidth: isMobile ? width : 600,
-    alignSelf: 'center',
     width: '100%',
-    paddingHorizontal: isMobile ? 0 : 20,
+    paddingBottom: 20,
+    minHeight: '100%',
   },
   carouselContainer: {
     paddingVertical: 16,
@@ -464,6 +549,64 @@ const styles = StyleSheet.create({
   },
   bottomNavItem: {
     padding: 8,
+  },
+  // Clips styles
+  clipsContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#9147ff',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  clipsFeed: {
+    flex: 1,
+    width: '100%',
+  },
+  clipPost: {
+    width: '100%',
+    height: Dimensions.get('window').height,
+    marginBottom: 0,
+  },
+  loadingMoreContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  endContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  endText: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });
 

@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { RegisterResponse, Streamer, TwitchLoginResponse } from '../types';
+import { RegisterResponse, Streamer, TwitchLoginResponse, ClipsResponse } from '../types';
 import { User } from '../types/index';
 
 const API_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8080") + "/api"
@@ -83,5 +83,24 @@ export const removeStreamer = (token: string, streamerId: string): Promise<Axios
   api.delete(`/streamers/${streamerId}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
+
+export const getClips = (
+  gameIds: string[], 
+  token: string, 
+  page: number = 1, 
+  limit: number = 100
+): Promise<AxiosResponse<ClipsResponse>> => {
+  // Build query parameters for multiple game IDs and pagination
+  const params = new URLSearchParams();
+  gameIds.forEach(gameId => {
+    params.append('game_id', gameId);
+  });
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  
+  return api.get(`/users/clips?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};
 
 export default api;
