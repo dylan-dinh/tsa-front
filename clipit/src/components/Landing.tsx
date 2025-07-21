@@ -32,7 +32,49 @@ const LandingPage = () => {
   // Check for OAuth callback BEFORE any hooks
   const shouldShowOAuthCallback = Platform.OS === 'web' ? (() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('code') !== null || urlParams.get('token') !== null;
+    const hasCode = urlParams.get('code') !== null;
+    const hasToken = urlParams.get('token') !== null;
+    
+    // Also check if we're on a callback path or if the URL contains callback indicators
+    const isCallbackPath = window.location.pathname.includes('callback') || 
+                          window.location.pathname.includes('oauth') ||
+                          window.location.href.includes('code=') ||
+                          window.location.href.includes('twitch');
+    
+    console.log('OAuth Callback Detection:', {
+      hasCode,
+      hasToken,
+      isCallbackPath,
+      currentUrl: window.location.href,
+      pathname: window.location.pathname,
+      search: window.location.search
+    });
+    
+    // If we have a token parameter, definitely show OAuth callback
+    if (hasToken) {
+      console.log('Token parameter detected, showing OAuth callback');
+      return true;
+    }
+    
+    // If we have a code parameter, definitely show OAuth callback
+    if (hasCode) {
+      console.log('Code parameter detected, showing OAuth callback');
+      return true;
+    }
+    
+    // If we're on a callback path, show OAuth callback
+    if (isCallbackPath) {
+      console.log('Callback path detected, showing OAuth callback');
+      return true;
+    }
+    
+    // If we're on the backend URL, show OAuth callback
+    if (window.location.href.includes('localhost:8080') || window.location.href.includes('api/users/login/twitch')) {
+      console.log('Backend URL detected, showing OAuth callback');
+      return true;
+    }
+    
+    return false;
   })() : false;
 
   // If there's an OAuth callback, show the callback component immediately
@@ -44,7 +86,6 @@ const LandingPage = () => {
   const { isLoginModalOpen, isRegisterModalOpen, openLoginModal, openRegisterModal, closeLoginModal, closeRegisterModal } = useModal();
   const { isAuthenticated } = useAuth();
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
-  const [isTwitchAuthOpen, setIsTwitchAuthOpen] = useState(false);
   
   const { width, height } = useMemo(() => Dimensions.get('window'), []);
   const isMobile = useMemo(() => width < 768, [width]);
@@ -225,10 +266,6 @@ const LandingPage = () => {
     setIsGoogleAuthOpen(true);
   }, []);
 
-  const handleTwitchSignUp = useCallback(() => {
-    setIsTwitchAuthOpen(true);
-  }, []);
-
   const handleCreateAccount = useCallback(() => {
     openRegisterModal();
   }, [openRegisterModal]);
@@ -249,9 +286,7 @@ const LandingPage = () => {
     setIsGoogleAuthOpen(false);
   }, []);
 
-  const handleCloseTwitchAuth = useCallback(() => {
-    setIsTwitchAuthOpen(false);
-  }, []);
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -304,14 +339,6 @@ const LandingPage = () => {
                 <GoogleIcon size={22} />
                 <Text style={styles.googleButtonText}>Sign up with Google</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleTwitchSignUp}
-                style={[styles.button, styles.twitchButton]}
-              >
-                <MaterialCommunityIcons name="twitch" size={22} color="white" />
-                <Text style={styles.twitchButtonText}>Sign up with Twitch</Text>
-              </TouchableOpacity>
             </View>
 
             {/* OR Separator */}
@@ -361,13 +388,6 @@ const LandingPage = () => {
           isOpen={isGoogleAuthOpen} 
           onClose={handleCloseGoogleAuth} 
           provider="google" 
-        />
-      )}
-      {isTwitchAuthOpen && (
-        <SocialAuth 
-          isOpen={isTwitchAuthOpen} 
-          onClose={handleCloseTwitchAuth} 
-          provider="twitch" 
         />
       )}
     </SafeAreaView>
