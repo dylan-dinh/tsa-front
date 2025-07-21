@@ -10,7 +10,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const OAuthCallback: React.FC = () => {
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-    const [message, setMessage] = useState('Processing authentication...');
+    const [message, setMessage] = useState('Processing Twitch authentication...');
     const { login } = useAuth();
     const navigation = useNavigation<NavigationProp>();
 
@@ -27,16 +27,20 @@ const OAuthCallback: React.FC = () => {
                 const code = urlParams.get('code');
                 const token = urlParams.get('token');
                 const state = urlParams.get('state');
+                
+                console.log('OAuth Callback - URL params:', { code: !!code, token: !!token, state: !!state });
+                console.log('Current URL:', window.location.href);
 
+                // Check if we have a token parameter (backend redirected with token)
                 if (token) {
-                    // Backend already processed the OAuth and returned a token
+                    console.log('Token parameter detected, processing authentication');
+                    
                     setMessage('Completing authentication...');
                     
-                    // For now, we'll create a dummy user object since we only have the token
-                    // In a real app, you'd want to fetch user data with the token
-                    const dummyUser = {
+                    // Create a temporary user object since backend only returns token
+                    const tempUser = {
                         id: 'temp',
-                        email: 'temp@temp.com',
+                        email: 'twitch@user.com',
                         username: 'TwitchUser',
                         first_name: 'Twitch',
                         last_name: 'User',
@@ -49,37 +53,67 @@ const OAuthCallback: React.FC = () => {
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     };
-
-                    await login(token, dummyUser);
+                    
+                    await login(token, tempUser);
                     setStatus('success');
                     setMessage('Authentication successful! Redirecting...');
                     
-                    // Clean up URL and redirect
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Clean up URL and redirect to home
+                    window.history.replaceState({}, document.title, '/');
+                    console.log('OAuth Callback - About to redirect to home (token case)');
                     
                     setTimeout(() => {
-                        navigation.navigate('Dashboard');
+                        // Force redirect to home page
+                        console.log('OAuth Callback - Executing redirect to home (token case)');
+                        window.location.href = '/';
                     }, 1000);
                     
                 } else if (code) {
                     // We have a code, need to exchange it for token
                     setMessage('Exchanging code for token...');
                     
-                    const response = await handleTwitchCallback(code, state || undefined);
-                    await login(response.token, response.user);
+                    const response = await handleTwitchCallback(code!, state || undefined);
+                    
+                    // Create a temporary user object since backend only returns token
+                    const tempUser = {
+                        id: 'temp',
+                        email: 'twitch@user.com',
+                        username: 'TwitchUser',
+                        first_name: 'Twitch',
+                        last_name: 'User',
+                        display_name: 'TwitchGamer',
+                        login: 'twitchuser',
+                        email_verified: true,
+                        twitch_username: undefined,
+                        twitch_id: undefined,
+                        twitch_avatar: undefined,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+                    
+                    await login(response.token, tempUser);
                     setStatus('success');
                     setMessage('Authentication successful! Redirecting...');
                     
-                    // Clean up URL and redirect
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Clean up URL and redirect to home
+                    window.history.replaceState({}, document.title, '/');
+                    console.log('OAuth Callback - About to redirect to home (code case)');
                     
                     setTimeout(() => {
-                        navigation.navigate('Dashboard');
+                        // Force redirect to home page
+                        console.log('OAuth Callback - Executing redirect to home (code case)');
+                        window.location.href = '/';
                     }, 1000);
                     
                 } else {
-                    setStatus('error');
-                    setMessage('No authentication data received');
+                    // Add a small delay before showing error to prevent flash
+                    // Only show error if we're still in loading state (not processing)
+                    setTimeout(() => {
+                        if (status === 'loading') {
+                            setStatus('error');
+                            setMessage('No authentication data received');
+                        }
+                    }, 1000);
                 }
             } catch (error) {
                 console.error('OAuth callback error:', error);
@@ -98,6 +132,7 @@ const OAuthCallback: React.FC = () => {
                     <>
                         <ActivityIndicator size="large" color="#9147ff" />
                         <Text style={styles.message}>{message}</Text>
+                        <Text style={styles.subMessage}>Please wait while we complete your authentication...</Text>
                     </>
                 )}
                 {status === 'success' && (
@@ -133,6 +168,12 @@ const styles = StyleSheet.create({
         marginTop: 20,
         fontSize: 16,
         color: '#666',
+        textAlign: 'center',
+    },
+    subMessage: {
+        marginTop: 10,
+        fontSize: 14,
+        color: '#999',
         textAlign: 'center',
     },
     successIcon: {

@@ -30,6 +30,6 @@ export interface User {
   }
 
   export interface TwitchLoginResponse {
+    message: string;
     token: string;
-    user: User;
   }
