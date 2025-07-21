@@ -67,4 +67,4 @@ export interface User {
 export interface ClipsResponse {
   message: string;
   data: PaginatedClipsResponse;
-}
+  }

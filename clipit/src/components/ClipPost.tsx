@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clip } from '../types';
@@ -25,8 +25,8 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   const { elementRef, isIntersecting } = useIntersectionObserver({
-    threshold: 0.8,
-    rootMargin: '-10% 0px -10% 0px'
+    threshold: 0.1,
+    rootMargin: '-40% 0px -40% 0px'
   });
 
   useEffect(() => {
@@ -34,13 +34,22 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
       onVisibilityChange(isIntersecting);
     }
 
-    // Pause video when not in view
-    if (!isIntersecting && iframeRef.current) {
-      const message = JSON.stringify({ eventName: 'pause' });
-      iframeRef.current.contentWindow?.postMessage(message, '*');
-      setIsPlaying(false);
+    // Handle pause when not in view
+    if (iframeRef.current && hasLoaded) {
+      if (!isIntersecting) {
+        // Pause video when not in view - use timeout to ensure it works
+        setTimeout(() => {
+          if (iframeRef.current && !isIntersecting) {
+            const pauseMessage = JSON.stringify({ eventName: 'pause' });
+            iframeRef.current.contentWindow?.postMessage(pauseMessage, '*');
+            setIsPlaying(false);
+          }
+        }, 100);
+      } else {
+        setIsPlaying(true);
+      }
     }
-  }, [isIntersecting, onVisibilityChange]);
+  }, [isIntersecting, onVisibilityChange, hasLoaded]);
 
   // Preload video when shouldPreload is true
   useEffect(() => {
@@ -57,6 +66,13 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
       document.body.appendChild(preloadIframe);
     }
   }, [shouldPreload, clip.EmbedURL, hasLoaded]);
+
+  // Memoize the iframe src to prevent constant re-renders
+  const iframeSrc = useMemo(() => {
+    if (!clip.EmbedURL) return '';
+    // Enable autoplay for better user experience
+    return `${clip.EmbedURL}&parent=localhost&autoplay=true&muted=true`;
+  }, [clip.EmbedURL]);
 
   const handlePress = () => {
     if (Platform.OS === 'web' && clip.EmbedURL && isIntersecting) {
@@ -105,7 +121,7 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
           <TouchableOpacity onPress={handlePress} activeOpacity={1} style={styles.videoWrapper}>
             <iframe
               ref={iframeRef}
-              src={`${clip.EmbedURL}&parent=localhost&autoplay=${isIntersecting}&muted=true`}
+              src={iframeSrc}
               width={VIDEO_WIDTH}
               height={VIDEO_HEIGHT}
               frameBorder="0"
@@ -134,13 +150,6 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
               </View>
             )}
             
-            {/* Centered Play Button Overlay */}
-            <View style={styles.playOverlay}>
-              <View style={styles.playButton}>
-                <MaterialCommunityIcons name="play" size={40} color="#ffffff" />
-              </View>
-            </View>
-            
             {/* Duration Badge */}
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>{formatDuration(clip.Duration)}</Text>
@@ -153,9 +162,6 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton}>
           <MaterialCommunityIcons name="heart-outline" size={28} color="#262626" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={handlePress}>
-          <MaterialCommunityIcons name="play-circle-outline" size={28} color="#262626" />
         </TouchableOpacity>
       </View>
 
@@ -232,23 +238,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#f0f0f0',
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },

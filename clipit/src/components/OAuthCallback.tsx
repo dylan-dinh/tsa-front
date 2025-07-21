@@ -27,7 +27,7 @@ const OAuthCallback: React.FC = () => {
                 const code = urlParams.get('code');
                 const token = urlParams.get('token');
                 const state = urlParams.get('state');
-                
+
                 console.log('OAuth Callback - URL params:', { code: !!code, token: !!token, state: !!state });
                 console.log('Current URL:', window.location.href);
 
@@ -53,7 +53,7 @@ const OAuthCallback: React.FC = () => {
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     };
-                    
+
                     await login(token, tempUser);
                     setStatus('success');
                     setMessage('Authentication successful! Redirecting...');
@@ -110,8 +110,8 @@ const OAuthCallback: React.FC = () => {
                     // Only show error if we're still in loading state (not processing)
                     setTimeout(() => {
                         if (status === 'loading') {
-                            setStatus('error');
-                            setMessage('No authentication data received');
+                    setStatus('error');
+                    setMessage('No authentication data received');
                         }
                     }, 1000);
                 }
