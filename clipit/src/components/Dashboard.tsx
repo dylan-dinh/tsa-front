@@ -7,6 +7,8 @@ import { RootStackParamList } from '../types/navigation';
 import { useClips } from '../hooks/useClips';
 import ClipCard from './ClipCard';
 import ClipPost from './ClipPost';
+import SnapCarouselFeed from './SnapCarouselFeed';
+import VideoFeed from './VideoFeed';
 import { Clip } from '../types';
 import storage from '../services/storage';
 
@@ -139,14 +141,7 @@ const Dashboard = () => {
     }
   };
 
-  const renderClip = ({ item, index }: { item: Clip, index: number }) => (
-    <View style={styles.clipPost}>
-      <ClipPost 
-        clip={item}
-        onClick={handleClipClick}
-      />
-    </View>
-  );
+
 
   const Sidebar = () => (
     <View style={[styles.sidebar, isMobile && styles.sidebarMobile]}>
@@ -241,51 +236,38 @@ const Dashboard = () => {
       hasMore 
     });
     
+    if (loading && clips.length === 0) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading clips...</Text>
+        </View>
+      );
+    }
+    
+    if (error && clips.length === 0) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
     return (
       <View style={styles.clipsContainer}>
-        {loading && clips.length === 0 && (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading clips...</Text>
-          </View>
-        )}
-        
-        {error && clips.length === 0 && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Error: {error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        
-        {clips.length > 0 && (
-          <FlatList
-            ref={flatListRef}
-            data={clips}
-            renderItem={renderClip}
-            keyExtractor={(item, index) => `clip-${index}`}
-            style={styles.clipsFeed}
-            showsVerticalScrollIndicator={false}
-            snapToInterval={Dimensions.get('window').height}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
-            getItemLayout={(data, index) => ({
-              length: Dimensions.get('window').height,
-              offset: Dimensions.get('window').height * index,
-              index,
-            })}
-          />
-        )}
+        <VideoFeed
+          clips={clips}
+          onClipClick={handleClipClick}
+          onEndReached={handleEndReached}
+        />
         
         {loadingMore && (
           <View style={styles.loadingMoreContainer}>
             <Text style={styles.loadingMoreText}>Loading more clips...</Text>
           </View>
         )}
-        
-
       </View>
     );
   };

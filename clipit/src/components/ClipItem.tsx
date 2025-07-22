@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
+import React, { useState, useRef, useEffect, memo } from 'react';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clip } from '../types';
-import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
 
-interface ClipPostProps {
+interface ClipItemProps {
   clip: Clip;
-  onClick?: (clip: Clip) => void;
-  onVisibilityChange?: (isVisible: boolean) => void;
-  shouldPreload?: boolean;
-  isFirstClip?: boolean;
+  isActive: boolean;
+  onClipClick?: (clip: Clip) => void;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -17,86 +14,12 @@ const isWeb = Platform.OS === 'web';
 
 // Calculate optimal dimensions for the video container
 const VIDEO_ASPECT_RATIO = 16 / 9;
-const VIDEO_WIDTH = Math.min(width * 0.5, 600); // 50% of width or max 600px
-const VIDEO_HEIGHT = Math.min(height * 0.75, VIDEO_WIDTH * VIDEO_ASPECT_RATIO);
+const VIDEO_WIDTH = Math.min(width * 0.9, 600); // 90% of width or max 600px
+const VIDEO_HEIGHT = Math.min(height * 0.8, VIDEO_WIDTH * VIDEO_ASPECT_RATIO);
 
-const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, shouldPreload = false, isFirstClip = false }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+const ClipItem: React.FC<ClipItemProps> = memo(({ clip, isActive, onClipClick }) => {
   const [hasLoaded, setHasLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  
-  const { elementRef, isIntersecting } = useIntersectionObserver({
-    threshold: 0.5, // Clip is focused when 50% visible
-    rootMargin: '-20% 0px -20% 0px' // Smaller margin for more precise focus detection
-  });
-
-  useEffect(() => {
-    if (onVisibilityChange) {
-      onVisibilityChange(isIntersecting);
-    }
-
-    // Handle autoplay/pause based on visibility
-    if (iframeRef.current && hasLoaded && Platform.OS === 'web') {
-      if (isIntersecting) {
-        // Play when clip is focused (visible)
-        console.log(`Playing clip: ${clip.Title || clip.TwitchID}`);
-        setIsPlaying(true);
-        // Use postMessage to play the video
-        const playMessage = JSON.stringify({ eventName: 'play' });
-        iframeRef.current.contentWindow?.postMessage(playMessage, '*');
-      } else {
-        // Pause when clip is not focused
-        console.log(`Pausing clip: ${clip.Title || clip.TwitchID}`);
-        setIsPlaying(false);
-        // Use postMessage to pause the video
-        const pauseMessage = JSON.stringify({ eventName: 'pause' });
-        iframeRef.current.contentWindow?.postMessage(pauseMessage, '*');
-      }
-    }
-  }, [isIntersecting, onVisibilityChange, hasLoaded, clip.Title, clip.TwitchID]);
-
-  // Preload video when shouldPreload is true - with delay to reduce lag
-  useEffect(() => {
-    if (shouldPreload && !hasLoaded && Platform.OS === 'web' && clip.EmbedURL) {
-      // Preload first clip immediately, others with delay
-      const delay = isFirstClip ? 0 : 500;
-      
-      const timeoutId = setTimeout(() => {
-        console.log(`Preloading clip: ${clip.Title || clip.TwitchID}`);
-        const preloadIframe = document.createElement('iframe');
-        preloadIframe.style.display = 'none';
-        preloadIframe.src = `${clip.EmbedURL}&parent=localhost&autoplay=false&muted=true&preload=metadata`;
-        
-        preloadIframe.onload = () => {
-          console.log(`Preloaded clip: ${clip.Title || clip.TwitchID}`);
-          setHasLoaded(true);
-          document.body.removeChild(preloadIframe);
-        };
-        
-        document.body.appendChild(preloadIframe);
-      }, delay);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [shouldPreload, clip.EmbedURL, hasLoaded, isFirstClip]);
-
-  // Memoize the iframe src to prevent constant re-renders
-  const iframeSrc = useMemo(() => {
-    if (!clip.EmbedURL) return '';
-    // Don't autoplay by default, we'll control it manually
-    return `${clip.EmbedURL}&parent=localhost&autoplay=false&muted=true&preload=metadata`;
-  }, [clip.EmbedURL]);
-
-  const handlePress = () => {
-    if (Platform.OS === 'web' && clip.EmbedURL && isIntersecting) {
-      // If video is visible, handle click
-      if (onClick) {
-        onClick(clip);
-      }
-    } else if (onClick) {
-      onClick(clip);
-    }
-  };
 
   const formatDuration = (duration: number | undefined): string => {
     if (!duration) return '0:00';
@@ -115,8 +38,32 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
     return views.toString();
   };
 
+  // Handle play/pause based on active state using postMessage
+  useEffect(() => {
+    if (Platform.OS === 'web' && iframeRef.current && hasLoaded) {
+      // Small delay to ensure iframe is fully ready
+      const timeoutId = setTimeout(() => {
+        if (isActive) {
+          console.log(`Playing clip: ${clip.Title || clip.TwitchID}`);
+          // Send play message to iframe
+          const playMessage = JSON.stringify({ eventName: 'play' });
+          iframeRef.current?.contentWindow?.postMessage(playMessage, '*');
+        } else {
+          console.log(`Pausing clip: ${clip.Title || clip.TwitchID}`);
+          // Send pause message to iframe
+          const pauseMessage = JSON.stringify({ eventName: 'pause' });
+          iframeRef.current?.contentWindow?.postMessage(pauseMessage, '*');
+        }
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isActive, hasLoaded, clip.Title, clip.TwitchID]);
+
+
+
   return (
-    <View style={styles.post} ref={elementRef}>
+    <View style={styles.clipContainer}>
       {/* Header */}
       <View style={styles.header}>
         <Image 
@@ -130,11 +77,16 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
 
       {/* Video Content */}
       <View style={[styles.videoContainer, { width: VIDEO_WIDTH, height: VIDEO_HEIGHT }]}>
-        {(Platform.OS === 'web' && clip.EmbedURL && (isIntersecting || hasLoaded || shouldPreload)) ? (
-          <TouchableOpacity onPress={handlePress} activeOpacity={1} style={styles.videoWrapper}>
+        {Platform.OS === 'web' && clip.EmbedURL ? (
+          <TouchableOpacity 
+            onPress={() => onClipClick?.(clip)} 
+            activeOpacity={1} 
+            style={styles.videoWrapper}
+          >
             <iframe
               ref={iframeRef}
-              src={iframeSrc}
+              key={`iframe-${clip.TwitchID}`}
+              src={`${clip.EmbedURL}&parent=localhost&autoplay=false&muted=true&preload=metadata&controls=true`}
               width={VIDEO_WIDTH}
               height={VIDEO_HEIGHT}
               frameBorder="0"
@@ -145,12 +97,17 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
                 backgroundColor: '#000',
               }}
               onLoad={() => {
+                console.log(`Iframe loaded for clip: ${clip.Title || clip.TwitchID}`);
                 setHasLoaded(true);
               }}
             />
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={handlePress} activeOpacity={0.9} style={styles.thumbnailContainer}>
+          <TouchableOpacity 
+            onPress={() => onClipClick?.(clip)} 
+            activeOpacity={0.9} 
+            style={styles.thumbnailContainer}
+          >
             {clip.ThumbnailURL ? (
               <Image 
                 source={{ uri: clip.ThumbnailURL }} 
@@ -167,6 +124,13 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>{formatDuration(clip.Duration)}</Text>
             </View>
+
+            {/* Play Button Overlay for Mobile */}
+            {!isWeb && (
+              <View style={styles.playButtonOverlay}>
+                <MaterialCommunityIcons name="play-circle" size={64} color="#ffffff" />
+              </View>
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -185,23 +149,14 @@ const ClipPost: React.FC<ClipPostProps> = ({ clip, onClick, onVisibilityChange, 
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
-  post: {
+  clipContainer: {
+    height: height,
     backgroundColor: '#ffffff',
-    marginBottom: 24,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     alignItems: 'center',
-    width: '100%',
+    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -222,10 +177,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#262626',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#8e8e93',
   },
   videoContainer: {
     alignItems: 'center',
@@ -268,6 +219,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  playButtonOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -32 }, { translateY: -32 }],
+  },
   actions: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -298,4 +255,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ClipPost; 
+export default ClipItem; 
