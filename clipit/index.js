@@ -1,4 +1,7 @@
 import 'react-native-gesture-handler';
+import 'buffer';
+import 'react-native-get-random-values';
+import 'process';
 import { registerRootComponent } from 'expo';
 import App from './App';
 
