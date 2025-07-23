@@ -5,6 +5,7 @@ import { ModalProvider } from './src/context/ModalContext';
 import { AuthProvider } from './src/context/AuthContext';
 import LandingPage from './src/components/Landing';
 import Dashboard from './src/components/Dashboard';
+import Explore from './src/components/Explore';
 import UserProfile from './src/components/UserProfile';
 import Login from './src/components/Login';
 import Register from './src/components/Register';
@@ -33,6 +34,11 @@ function AppNavigator() {
       <Stack.Screen 
         name="Dashboard" 
         component={Dashboard}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Explore" 
+        component={Explore}
         options={{ headerShown: false }}
       />
       <Stack.Screen 
