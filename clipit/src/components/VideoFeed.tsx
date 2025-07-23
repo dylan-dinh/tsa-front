@@ -46,20 +46,43 @@ const VideoItem: React.FC<VideoItemProps> = React.memo(({ clip, index, isActive,
     return views.toString();
   };
 
-  // Handle play/pause based on active state
+  // Handle play/pause based on active state using postMessage (no reloading)
   useEffect(() => {
     if (Platform.OS === 'web' && iframeRef.current && hasLoaded) {
-      if (isActive) {
-        console.log(`Playing clip: ${clip.Title || clip.TwitchID}`);
-        // Send play message to iframe
-        const playMessage = JSON.stringify({ eventName: 'play' });
-        iframeRef.current.contentWindow?.postMessage(playMessage, '*');
-      } else {
-        console.log(`Pausing clip: ${clip.Title || clip.TwitchID}`);
-        // Send pause message to iframe
-        const pauseMessage = JSON.stringify({ eventName: 'pause' });
-        iframeRef.current.contentWindow?.postMessage(pauseMessage, '*');
-      }
+      // Small delay to ensure iframe is ready
+      const timeoutId = setTimeout(() => {
+        if (isActive) {
+          console.log(`Playing clip: ${clip.Title || clip.TwitchID}`);
+          // Try multiple postMessage methods for reliability
+          try {
+            const playMessage = JSON.stringify({ eventName: 'play' });
+            iframeRef.current?.contentWindow?.postMessage(playMessage, '*');
+            
+            // Fallback: try different message format
+            setTimeout(() => {
+              iframeRef.current?.contentWindow?.postMessage('play', '*');
+            }, 50);
+          } catch (error) {
+            console.error('Error playing clip:', error);
+          }
+        } else {
+          console.log(`Pausing clip: ${clip.Title || clip.TwitchID}`);
+          // Try multiple postMessage methods for reliability
+          try {
+            const pauseMessage = JSON.stringify({ eventName: 'pause' });
+            iframeRef.current?.contentWindow?.postMessage(pauseMessage, '*');
+            
+            // Fallback: try different message format
+            setTimeout(() => {
+              iframeRef.current?.contentWindow?.postMessage('pause', '*');
+            }, 50);
+          } catch (error) {
+            console.error('Error pausing clip:', error);
+          }
+        }
+      }, 200);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isActive, hasLoaded, clip.Title, clip.TwitchID]);
 
