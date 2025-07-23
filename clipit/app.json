@@ -18,14 +18,35 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clipit.app"
+      "bundleIdentifier": "com.clipit.app",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["clipit"],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "clipit",
+            "CFBundleURLSchemes": ["clipit"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.clipit.app"
+      "package": "com.clipit.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "clipit"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

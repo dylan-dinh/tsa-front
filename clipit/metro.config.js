@@ -18,10 +18,16 @@ config.resolver.nodeModulesPaths = [
   require.resolve('buffer'),
 ];
 
-// Add process polyfill
+// Add process polyfill and other fallbacks
 config.resolver.fallback = {
   ...config.resolver.fallback,
   process: require.resolve('process'),
+  buffer: require.resolve('buffer'),
+  util: require.resolve('util'),
+  stream: require.resolve('readable-stream'),
 };
+
+// Ensure these modules are included in the bundle
+config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
 module.exports = config; 
