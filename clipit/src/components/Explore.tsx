@@ -29,7 +29,7 @@ export function ClipEmbed({
   });
 
   return (
-    <View style={{ width, height: height * 0.5, alignSelf: 'center' }}>
+            <View style={{ width, height: height * 0.65, alignSelf: 'center' }}>
       <WebView
         source={{ uri: `https://clips.twitch.tv/embed?${params.toString()}` }}
         style={{ flex: 1, backgroundColor: 'black' }}
@@ -136,9 +136,7 @@ function ClipItem({ clip, index, totalClips, isFocused, onNext, onPrev }: ClipIt
 
   return (
     <View style={styles.clipContainer}>
-      <View style={styles.clipCounter}>
-        <Text style={styles.counterText}>{index + 1} / {totalClips}</Text>
-      </View>
+      {/* Removed clip counter */}
       
                     <ClipEmbed
         clipSlug={clip.clipId}
@@ -319,8 +317,9 @@ const styles = StyleSheet.create({
   clipContainer: {
     flex: 1,
     position: 'relative',
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // Start from top instead of center
     alignItems: 'center',
+    paddingTop: 60, // Move everything up higher
   },
   clipCounter: {
     position: 'absolute',
@@ -338,13 +337,14 @@ const styles = StyleSheet.create({
   },
   clipInfo: {
     position: 'absolute',
-    bottom: 20, // Fixed distance from bottom
+    bottom: 160, // Move much higher up
     left: 20,
     right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     padding: 16,
     borderRadius: 12,
     zIndex: 10,
+    alignSelf: 'center', // Center the info box
   },
   clipTitle: {
     color: '#fff',
