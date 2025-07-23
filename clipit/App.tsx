@@ -1,65 +1,59 @@
-import React, { StrictMode } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ModalProvider } from './src/context/ModalContext';
-import { AuthProvider } from './src/context/AuthContext';
-import LandingPage from './src/components/Landing';
+import { Linking } from 'react-native';
+import Landing from './src/components/Landing';
 import Dashboard from './src/components/Dashboard';
 import Explore from './src/components/Explore';
 import UserProfile from './src/components/UserProfile';
-import Login from './src/components/Login';
-import Register from './src/components/Register';
-import { RootStackParamList } from './src/types/navigation';
+import { AuthProvider } from './src/context/AuthContext';
+import { ModalProvider } from './src/context/ModalContext';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
-
-function AppNavigator() {
-  return (
-    <Stack.Navigator initialRouteName="Landing">
-      <Stack.Screen 
-        name="Landing" 
-        component={LandingPage}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="Login" 
-        component={Login}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="Register" 
-        component={Register}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="Dashboard" 
-        component={Dashboard}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="Explore" 
-        component={Explore}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="UserProfile" 
-        component={UserProfile}
-        options={{ headerShown: false }}
-      />
-    </Stack.Navigator>
-  );
-}
+const Stack = createNativeStackNavigator();
 
 export default function App() {
+  useEffect(() => {
+    // Prevent external URL opening
+    const handleUrl = (url: string) => {
+      console.log('🚫 Blocked external URL attempt:', url);
+      return false;
+    };
+
+    // Set up URL handling
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleUrl(event.url);
+    });
+
+    // Override Linking.openURL to prevent external opening
+    const originalOpenURL = Linking.openURL;
+    Linking.openURL = async (url: string) => {
+      console.log('🚫 Blocked Linking.openURL attempt:', url);
+      return Promise.resolve(false);
+    };
+
+    return () => {
+      subscription?.remove();
+      Linking.openURL = originalOpenURL;
+    };
+  }, []);
+
   return (
-    <StrictMode>
-      <AuthProvider>
+    <AuthProvider>
+      <ModalProvider>
         <NavigationContainer>
-          <ModalProvider>
-            <AppNavigator />
-          </ModalProvider>
+          <Stack.Navigator
+            initialRouteName="Landing"
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="Landing" component={Landing} />
+            <Stack.Screen name="Dashboard" component={Dashboard} />
+            <Stack.Screen name="Explore" component={Explore} />
+            <Stack.Screen name="UserProfile" component={UserProfile} />
+          </Stack.Navigator>
         </NavigationContainer>
-      </AuthProvider>
-    </StrictMode>
+      </ModalProvider>
+    </AuthProvider>
   );
 } 

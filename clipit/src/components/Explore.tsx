@@ -11,6 +11,7 @@ interface ClipEmbedProps {
   parentDomain: string;
   autoPlay?: boolean;
   muted?: boolean;
+  isFocused?: boolean;
 }
 
 export function ClipEmbed({
@@ -18,16 +19,17 @@ export function ClipEmbed({
   parentDomain,
   autoPlay = true,
   muted = true,
+  isFocused = false,
 }: ClipEmbedProps) {
   const params = new URLSearchParams({
     clip: clipSlug,
     parent: parentDomain,
-    autoplay: autoPlay ? 'true' : 'false',
+    autoplay: 'false', // Keep autoplay off for now
     muted: muted ? 'true' : 'false',
   });
 
   return (
-    <View style={{ width, height: height * 0.6 }}>
+    <View style={{ width, height: height * 0.5, alignSelf: 'center' }}>
       <WebView
         source={{ uri: `https://clips.twitch.tv/embed?${params.toString()}` }}
         style={{ flex: 1, backgroundColor: 'black' }}
@@ -46,12 +48,22 @@ export function ClipEmbed({
             return true;
           }
           
+          // Block gql.twitch.tv specifically
+          if (url.includes('gql.twitch.tv')) {
+            console.log('🚫 Blocked gql.twitch.tv URL:', url);
+            return false;
+          }
+          
           // Block everything else
           console.log('🚫 Blocked URL:', url);
           return false;
         }}
         onNavigationStateChange={(navState) => {
           console.log('📱 Navigation state changed:', navState.url);
+          // Force back to embed URL if navigation changes
+          if (!navState.url.includes('clips.twitch.tv/embed')) {
+            console.log('🔄 Forcing back to embed URL');
+          }
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
@@ -71,6 +83,10 @@ export function ClipEmbed({
           console.log('🚫 Blocked window open attempt');
           return false;
         }}
+        // More aggressive settings
+        allowsBackForwardNavigationGestures={false}
+        allowsProtectedMedia={false}
+        cacheEnabled={false}
       />
     </View>
   );
@@ -86,11 +102,12 @@ interface ClipItemProps {
   };
   index: number;
   totalClips: number;
+  isFocused: boolean;
   onNext: () => void;
   onPrev: () => void;
 }
 
-function ClipItem({ clip, index, totalClips, onNext, onPrev }: ClipItemProps) {
+function ClipItem({ clip, index, totalClips, isFocused, onNext, onPrev }: ClipItemProps) {
   const [currentParentDomain, setCurrentParentDomain] = useState(0);
   
   const parentDomains = [
@@ -123,12 +140,13 @@ function ClipItem({ clip, index, totalClips, onNext, onPrev }: ClipItemProps) {
         <Text style={styles.counterText}>{index + 1} / {totalClips}</Text>
       </View>
       
-              <ClipEmbed
-          clipSlug={clip.clipId}
-          parentDomain={parentDomains[currentParentDomain]}
-          autoPlay={false}
-          muted={false}
-        />
+                    <ClipEmbed
+        clipSlug={clip.clipId}
+        parentDomain={parentDomains[currentParentDomain]}
+        autoPlay={false}
+        muted={false}
+        isFocused={isFocused}
+      />
       
       <View style={styles.clipInfo}>
         <Text style={styles.clipTitle}>{clip.title}</Text>
@@ -136,21 +154,9 @@ function ClipItem({ clip, index, totalClips, onNext, onPrev }: ClipItemProps) {
         <Text style={styles.clipViews}>{clip.views} views</Text>
       </View>
       
-      <View style={styles.clipActions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleOpenClip}>
-          <Text style={styles.actionBtnText}>🔗</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={onNext}>
-          <Text style={styles.actionBtnText}>⏭️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleRetry}>
-          <Text style={styles.actionBtnText}>🔄</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Removed action buttons */}
       
-      <View style={styles.navigationHint}>
-        <Text style={styles.hintText}>Swipe up/down to navigate</Text>
-      </View>
+              {/* Removed persistent navigation hint */}
     </View>
   );
 }
@@ -261,6 +267,7 @@ export default function Explore() {
               clip={clip}
               index={index}
               totalClips={mockClips.length}
+              isFocused={index === currentClipIndex}
               onNext={handleNext}
               onPrev={handlePrev}
             />
@@ -282,8 +289,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
+    paddingTop: 50, // Add top padding to avoid status bar
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    height: 60,
+    height: 100, // Increased height to accommodate status bar
     zIndex: 100,
   },
   backBtn: {
@@ -303,14 +311,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    height: 5 * height, // 5 clips for now
+    height: 5 * (height - 100), // Account for larger header
   },
   clipPage: {
-    height: height,
+    height: height - 100, // Account for larger header
   },
   clipContainer: {
     flex: 1,
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   clipCounter: {
     position: 'absolute',
@@ -328,7 +338,7 @@ const styles = StyleSheet.create({
   },
   clipInfo: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 20, // Fixed distance from bottom
     left: 20,
     right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
