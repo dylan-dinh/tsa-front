@@ -337,12 +337,10 @@ const styles = StyleSheet.create({
   },
   clipInfo: {
     position: 'absolute',
-    bottom: 160, // Move much higher up
+    bottom: 180, // Move even higher up
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     padding: 16,
-    borderRadius: 12,
     zIndex: 10,
     alignSelf: 'center', // Center the info box
   },
