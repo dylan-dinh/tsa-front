@@ -2,7 +2,24 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Add Node.js polyfills
+// Disable experimentalImportSupport to prefer CommonJS builds over ESM where possible.
+config.transformer.getTransformOptions = async () => ({
+  transform: {
+    experimentalImportSupport: false,
+  },
+});
+
+// Prefer CJS over ESM so packages resolve to their pre-compiled CommonJS builds.
+config.resolver.unstable_conditionNames = ['browser', 'require', 'react-native'];
+
+// Metro skips Babel for node_modules by default.
+// This pattern un-skips packages that ship untranspiled code (ESM or private
+// class fields) so they get compiled by the hermes-v0 Babel profile above.
+config.transformer.transformIgnorePatterns = [
+  'node_modules/(?!(react-native|@react-native|@react-native-community|expo|@expo|@unimodules|unimodules|sentry-expo|react-native-reanimated|react-native-worklets|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-navigation|react-native-get-random-values|react-native-web|@gorhom|@shopify)/)',
+];
+
+// Node.js polyfills
 config.resolver.alias = {
   ...config.resolver.alias,
   buffer: 'buffer',
@@ -12,13 +29,11 @@ config.resolver.alias = {
   process: 'process',
 };
 
-// Add buffer to the list of node modules
 config.resolver.nodeModulesPaths = [
   ...config.resolver.nodeModulesPaths,
   require.resolve('buffer'),
 ];
 
-// Add process polyfill and other fallbacks
 config.resolver.fallback = {
   ...config.resolver.fallback,
   process: require.resolve('process'),
@@ -27,7 +42,6 @@ config.resolver.fallback = {
   stream: require.resolve('readable-stream'),
 };
 
-// Ensure these modules are included in the bundle
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-module.exports = config; 
+module.exports = config;

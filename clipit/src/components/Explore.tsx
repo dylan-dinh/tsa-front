@@ -1,416 +1,184 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Platform, useWindowDimensions,
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import { useClips } from '../hooks/useClips';
-
-const { width, height } = Dimensions.get('window');
-
-interface ClipEmbedProps {
-  clipSlug: string;
-  parentDomain: string;
-  autoPlay?: boolean;
-  muted?: boolean;
-  isFocused?: boolean;
-}
-
-export function ClipEmbed({
-  clipSlug,
-  parentDomain,
-  autoPlay = true,
-  muted = true,
-  isFocused = false,
-}: ClipEmbedProps) {
-  const params = new URLSearchParams({
-    clip: clipSlug,
-    parent: parentDomain,
-    autoplay: 'false', // Keep autoplay off for now
-    muted: muted ? 'true' : 'false',
-  });
-
-  return (
-            <View style={{ width, height: height * 0.65, alignSelf: 'center' }}>
-      <WebView
-        source={{ uri: `https://clips.twitch.tv/embed?${params.toString()}` }}
-        style={{ flex: 1, backgroundColor: 'black' }}
-        scrollEnabled={false}
-        javaScriptEnabled
-        mediaPlaybackRequiresUserAction={false}
-        allowsInlineMediaPlayback
-        originWhitelist={['https://clips.twitch.tv']}
-        onShouldStartLoadWithRequest={(request) => {
-          const url = request.url;
-          console.log('🔍 WebView trying to load:', url);
-          
-          // Only allow the main embed URL and block everything else
-          if (url.includes('clips.twitch.tv/embed')) {
-            console.log('✅ Allowed embed URL:', url);
-            return true;
-          }
-          
-          // Block gql.twitch.tv specifically
-          if (url.includes('gql.twitch.tv')) {
-            console.log('🚫 Blocked gql.twitch.tv URL:', url);
-            return false;
-          }
-          
-          // Block everything else
-          console.log('🚫 Blocked URL:', url);
-          return false;
-        }}
-        onNavigationStateChange={(navState) => {
-          console.log('📱 Navigation state changed:', navState.url);
-          // Force back to embed URL if navigation changes
-          if (!navState.url.includes('clips.twitch.tv/embed')) {
-            console.log('🔄 Forcing back to embed URL');
-          }
-        }}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.warn('❌ WebView error: ', nativeEvent);
-        }}
-        onHttpError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.warn('❌ WebView HTTP error: ', nativeEvent);
-        }}
-        // Additional settings to prevent external opening
-        allowsLinkPreview={false}
-        dataDetectorTypes="none"
-        hideKeyboardAccessoryView={true}
-        keyboardDisplayRequiresUserAction={false}
-        // Try to prevent external app opening
-        onOpenWindow={(syntheticEvent) => {
-          console.log('🚫 Blocked window open attempt');
-          return false;
-        }}
-        // More aggressive settings
-        allowsBackForwardNavigationGestures={false}
-        allowsProtectedMedia={false}
-        cacheEnabled={false}
-      />
-    </View>
-  );
-}
-
-interface ClipItemProps {
-  clip: {
-    id: number;
-    title: string;
-    broadcaster: string;
-    views: string;
-    clipId: string;
-  };
-  index: number;
-  totalClips: number;
-  isFocused: boolean;
-  onNext: () => void;
-  onPrev: () => void;
-}
-
-function ClipItem({ clip, index, totalClips, isFocused, onNext, onPrev }: ClipItemProps) {
-  const [currentParentDomain, setCurrentParentDomain] = useState(0);
-  
-  const parentDomains = [
-    'localhost',
-    '127.0.0.1',
-    'clipit.app',
-    'example.com',
-    'twitch.tv',
-    'clips.twitch.tv',
-    'www.twitch.tv',
-    'player.twitch.tv'
-  ];
-
-  const handleRetry = () => {
-    const nextDomain = (currentParentDomain + 1) % parentDomains.length;
-    setCurrentParentDomain(nextDomain);
-  };
-
-  const handleOpenClip = () => {
-    const clipUrl = `https://clips.twitch.tv/${clip.clipId}`;
-    Alert.alert('Open Clip', `Would you like to open this clip in your browser?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Open', onPress: () => console.log('Opening clip:', clipUrl) }
-    ]);
-  };
-
-  return (
-    <View style={styles.clipContainer}>
-      {/* Removed clip counter */}
-      
-                    <ClipEmbed
-        clipSlug={clip.clipId}
-        parentDomain={parentDomains[currentParentDomain]}
-        autoPlay={false}
-        muted={false}
-        isFocused={isFocused}
-      />
-      
-      <View style={styles.clipInfo}>
-        <Text style={styles.clipTitle}>{clip.title}</Text>
-        <Text style={styles.clipBroadcaster}>@{clip.broadcaster}</Text>
-        <Text style={styles.clipViews}>{clip.views} views</Text>
-      </View>
-      
-      {/* Removed action buttons */}
-      
-              {/* Removed persistent navigation hint */}
-    </View>
-  );
-}
+import { Clip } from '../types';
+import ClipEmbed from './ClipEmbed';
+import preferences, { Vote } from '../services/preferences';
+import { getCategoryName } from '../data/categories';
+import { colors, radii, font, fmtCount } from '../styles/theme';
 
 export default function Explore() {
-  const navigation = useNavigation();
-  const [currentClipIndex, setCurrentClipIndex] = useState(0);
-  
-  // Mock clips data (replace with real backend data later)
-  const mockClips = [
-    {
-      id: 1,
-      title: 'Amazing Gaming Moment - Epic Play!',
-      broadcaster: 'GamerPro',
-      views: '15K',
-      clipId: 'SuspiciousDifferentPanLitFam-mMLLjoIPEvQAgGya'
-    },
-    {
-      id: 2,
-      title: 'Epic Victory - Unbelievable Win!',
-      broadcaster: 'StreamMaster',
-      views: '25K',
-      clipId: 'DreamyDiligentShieldAllenHuhu-arrh4IQrhKoG-KtX'
-    },
-    {
-      id: 3,
-      title: 'Incredible Team Fight',
-      broadcaster: 'ProGamer',
-      views: '32K',
-      clipId: 'CrispyJazzyWrenMingLee-WJUOzWvessilciK5'
-    },
-    {
-      id: 4,
-      title: 'Perfect Strategy Execution',
-      broadcaster: 'TacticalPlayer',
-      views: '18K',
-      clipId: 'SuspiciousDifferentPanLitFam-mMLLjoIPEvQAgGya'
-    },
-    {
-      id: 5,
-      title: 'Clutch Moment of the Year',
-      broadcaster: 'ClutchKing',
-      views: '45K',
-      clipId: 'DreamyDiligentShieldAllenHuhu-arrh4IQrhKoG-KtX'
-    }
-  ];
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { token } = useAuth();
+  const { width, height } = useWindowDimensions();
+  const listRef = useRef<FlatList>(null);
 
-  const handleNext = useCallback(() => {
-    if (currentClipIndex < mockClips.length - 1) {
-      setCurrentClipIndex(currentClipIndex + 1);
-    }
-  }, [currentClipIndex, mockClips.length]);
+  const paramGameId: string | undefined = route.params?.gameId;
+  const paramClipId: string | undefined = route.params?.clipId;
 
-  const handlePrev = useCallback(() => {
-    if (currentClipIndex > 0) {
-      setCurrentClipIndex(currentClipIndex - 1);
-    }
-  }, [currentClipIndex]);
+  const [subscribed, setSubscribed] = useState<string[]>([]);
+  const [votes, setVotes] = useState<Record<string, Vote>>({});
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [index, setIndex] = useState(0);
 
-  const handleBack = () => {
-    navigation.goBack();
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        const [subs, v, s] = await Promise.all([
+          preferences.getSubscribedGames(),
+          preferences.getVotes(),
+          preferences.getSavedClipIds(),
+        ]);
+        if (!active) return;
+        setSubscribed(subs);
+        setVotes(v);
+        setSaved(Object.fromEntries(s.map((id) => [id, true])));
+      })();
+      return () => { active = false; };
+    }, []),
+  );
+
+  const gameIds = paramGameId ? [paramGameId] : subscribed;
+  const { clips, loading, loadingMore, hasMore, loadMore } = useClips({ gameIds, token: token || '' });
+
+  // Jump to the tapped clip once data is in.
+  useEffect(() => {
+    if (paramClipId && clips.length) {
+      const i = clips.findIndex((c) => String(c.ID) === paramClipId);
+      if (i > 0) { setIndex(i); setTimeout(() => listRef.current?.scrollToIndex({ index: i, animated: false }), 60); }
+    }
+  }, [paramClipId, clips.length]);
+
+  const pageH = height;
+  const embedW = Math.min(width - (Platform.OS === 'web' ? 0 : 0), 720);
+  const embedH = Math.round(embedW * 9 / 16);
+
+  const onVote = async (clip: Clip, dir: 'up' | 'down') => {
+    const id = String(clip.ID);
+    const next: Vote = votes[id] === dir ? null : dir;
+    setVotes((p) => ({ ...p, [id]: next }));
+    await preferences.setVote(id, next);
+  };
+  const onSave = async (clip: Clip) => {
+    const id = String(clip.ID);
+    setSaved((p) => ({ ...p, [id]: !p[id] }));
+    await preferences.toggleSavedClip(id);
   };
 
-  if (mockClips.length === 0) {
+  const renderItem = ({ item, index: itemIndex }: { item: Clip; index: number }) => {
+    const id = String(item.ID);
+    const vote = votes[id];
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-            <Text style={styles.backBtnText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Explore Clips</Text>
-          <View style={{ width: 50 }} />
+      <View style={[styles.page, { height: pageH }]}>
+        <View style={styles.embedHolder}>
+          <ClipEmbed
+            clip={item}
+            width={embedW}
+            height={embedH}
+            isActive={itemIndex === index}
+            preload={Math.abs(itemIndex - index) === 1}
+          />
         </View>
-        <View style={styles.noClips}>
-          <Text style={styles.noClipsTitle}>No Clips Available</Text>
-          <Text style={styles.noClipsText}>Check back later for new clips!</Text>
+
+        {/* Right action rail */}
+        <View style={styles.rail}>
+          <View style={styles.railItem}>
+            <Pressable onPress={() => onVote(item, 'up')} hitSlop={8}>
+              <MaterialCommunityIcons name="chevron-up" size={34} color={vote === 'up' ? colors.electric : '#fff'} />
+            </Pressable>
+            <Text style={styles.railCount}>{fmtCount((item.ViewCount ? Math.round(item.ViewCount / 40) : 0) + (vote === 'up' ? 1 : vote === 'down' ? -1 : 0))}</Text>
+            <Pressable onPress={() => onVote(item, 'down')} hitSlop={8}>
+              <MaterialCommunityIcons name="chevron-down" size={34} color={vote === 'down' ? colors.purple : 'rgba(255,255,255,0.55)'} />
+            </Pressable>
+          </View>
+          <Pressable style={styles.railItem} onPress={() => onSave(item)} hitSlop={8}>
+            <MaterialCommunityIcons name={saved[id] ? 'bookmark' : 'bookmark-outline'} size={28} color={saved[id] ? colors.electric : '#fff'} />
+            <Text style={styles.railLabel}>Save</Text>
+          </Pressable>
+          <Pressable style={styles.railItem} hitSlop={8}>
+            <MaterialCommunityIcons name="share-outline" size={28} color="#fff" />
+          </Pressable>
+        </View>
+
+        {/* Bottom info */}
+        <View style={styles.info}>
+          <View style={styles.catChip}>
+            <Text style={styles.catChipText}>{getCategoryName(item.GameID)}</Text>
+          </View>
+          <Text style={styles.broadcaster}>{item.BroadcasterName || 'Twitch streamer'}</Text>
+          <Text style={styles.clipTitle} numberOfLines={2}>{item.Title || 'Untitled clip'}</Text>
         </View>
       </View>
     );
-  }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Text style={styles.backBtnText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Explore Clips</Text>
-        <View style={{ width: 50 }} />
+        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+        </Pressable>
+        <Text style={styles.headerTitle}>{paramGameId ? getCategoryName(paramGameId) : 'Explore'}</Text>
+        <View style={{ width: 40 }} />
       </View>
-      
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        pagingEnabled
-        onMomentumScrollEnd={(event) => {
-          const offsetY = event.nativeEvent.contentOffset.y;
-          const newIndex = Math.round(offsetY / height);
-          if (newIndex !== currentClipIndex && newIndex >= 0 && newIndex < mockClips.length) {
-            setCurrentClipIndex(newIndex);
-          }
-        }}
-      >
-        {mockClips.map((clip, index) => (
-          <View key={clip.id} style={styles.clipPage}>
-            <ClipItem
-              clip={clip}
-              index={index}
-              totalClips={mockClips.length}
-              isFocused={index === currentClipIndex}
-              onNext={handleNext}
-              onPrev={handlePrev}
-            />
-          </View>
-        ))}
-      </ScrollView>
+
+      {loading && clips.length === 0 ? (
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.purple} /></View>
+      ) : clips.length === 0 ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="inbox-outline" size={42} color={colors.faint} />
+          <Text style={styles.emptyText}>No clips to explore yet.</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={clips}
+          keyExtractor={(c) => String(c.ID)}
+          renderItem={renderItem}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          snapToInterval={pageH}
+          decelerationRate="fast"
+          getItemLayout={(_, i) => ({ length: pageH, offset: pageH * i, index: i })}
+          onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.y / pageH))}
+          onEndReachedThreshold={0.5}
+          onEndReached={() => { if (hasMore && !loadingMore) loadMore(); }}
+          onScrollToIndexFailed={() => {}}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  container: { flex: 1, backgroundColor: '#000' },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    paddingTop: 50, // Add top padding to avoid status bar
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    height: 100, // Increased height to accommodate status bar
-    zIndex: 100,
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingTop: Platform.OS === 'web' ? 14 : 48, paddingBottom: 12,
   },
-  backBtn: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  backBtnText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    height: 5 * (height - 100), // Account for larger header
-  },
-  clipPage: {
-    height: height - 100, // Account for larger header
-  },
-  clipContainer: {
-    flex: 1,
-    position: 'relative',
-    justifyContent: 'flex-start', // Start from top instead of center
-    alignItems: 'center',
-    paddingTop: 60, // Move everything up higher
-  },
-  clipCounter: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  counterText: {
-    color: '#fff',
-    fontSize: 12,
-  },
-  clipInfo: {
-    position: 'absolute',
-    bottom: 180, // Move even higher up
-    left: 20,
-    right: 20,
-    padding: 16,
-    zIndex: 10,
-    alignSelf: 'center', // Center the info box
-  },
-  clipTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  clipBroadcaster: {
-    color: '#9147ff',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  clipViews: {
-    color: '#999',
-    fontSize: 12,
-  },
-  clipActions: {
-    position: 'absolute',
-    right: 20,
-    bottom: 100,
-    flexDirection: 'column',
-    gap: 20,
-    zIndex: 10,
-  },
-  actionBtn: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionBtnText: {
-    color: '#fff',
-    fontSize: 20,
-  },
-  navigationHint: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -100 }, { translateY: -20 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    zIndex: 20,
-  },
-  hintText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  noClips: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  noClipsTitle: {
-    color: '#999',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  noClipsText: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-}); 
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(5,5,9,0.5)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 16, fontWeight: font.weight.bold },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  emptyText: { color: colors.gray, fontSize: 14 },
+  page: { width: '100%', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  embedHolder: { justifyContent: 'center', alignItems: 'center' },
+  rail: { position: 'absolute', right: 14, bottom: 120, alignItems: 'center', gap: 22 },
+  railItem: { alignItems: 'center', gap: 3 },
+  railCount: { color: '#fff', fontSize: 12, fontWeight: font.weight.bold, fontFamily: font.mono as any },
+  railLabel: { color: '#fff', fontSize: 10, fontWeight: font.weight.semibold },
+  info: { position: 'absolute', left: 16, right: 80, bottom: 60 },
+  catChip: { alignSelf: 'flex-start', backgroundColor: 'rgba(5,5,9,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.pill, marginBottom: 9 },
+  catChipText: { color: '#fff', fontSize: 11, fontWeight: font.weight.semibold },
+  broadcaster: { color: '#fff', fontSize: 14, fontWeight: font.weight.bold, marginBottom: 5 },
+  clipTitle: { color: 'rgba(255,255,255,0.9)', fontSize: 14, lineHeight: 19 },
+  embedFallback: { justifyContent: 'center', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: 16 },
+  embedFallbackText: { color: colors.gray, fontSize: 13 },
+});

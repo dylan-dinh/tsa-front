@@ -3,6 +3,29 @@ import { Clip } from '../types';
 import { getClips } from '../services/api';
 import clipsStorage from '../services/clipsStorage';
 
+// Shown when the backend has no clips yet so the embed UI is always exercised.
+const DEMO_CLIP_BASE = {
+  TwitchID: 'QuaintBetterFennelTheTarFu-s0cX0N8h7MCvMIJo',
+  URL: 'https://www.twitch.tv/partychip/clip/QuaintBetterFennelTheTarFu-s0cX0N8h7MCvMIJo',
+  EmbedURL: 'https://clips.twitch.tv/embed?clip=QuaintBetterFennelTheTarFu-s0cX0N8h7MCvMIJo',
+  BroadcasterID: 0,
+  BroadcasterName: 'partychip',
+  GameID: '509658',
+  Title: 'Demo clip — real clips appear once the backend has ingested some',
+  VideoID: 0,
+  CreatorID: 0,
+  ViewCount: 12000,
+  Duration: 28,
+  CreatedAt: new Date().toISOString(),
+  UpdatedAt: new Date().toISOString(),
+};
+
+const DEMO_CLIPS: Clip[] = [
+  { ...DEMO_CLIP_BASE, ID: -1 },
+  { ...DEMO_CLIP_BASE, ID: -2 },
+  { ...DEMO_CLIP_BASE, ID: -3 },
+];
+
 interface UseClipsOptions {
   gameIds: string[];
   token: string;
@@ -41,15 +64,15 @@ export const useClips = ({
     console.log('useClips: loadClips called', { gameIds: gameIds.length, token: !!token });
     
     if (gameIds.length === 0) {
-      console.log('useClips: No game IDs, returning empty clips');
-      setClips([]);
+      console.log('useClips: No game IDs, showing demo clips');
+      setClips(DEMO_CLIPS);
       setHasMore(false);
       return;
     }
 
     if (!token) {
-      console.log('useClips: No token, returning empty clips');
-      setClips([]);
+      console.log('useClips: No token, showing demo clips');
+      setClips(DEMO_CLIPS);
       setHasMore(false);
       return;
     }
@@ -93,10 +116,12 @@ export const useClips = ({
         });
       }
       
+      const clipsToShow = paginatedData.clips.length > 0 ? paginatedData.clips : DEMO_CLIPS;
+
       // Store in cache
-      await clipsStorage.storeClips(paginatedData.clips, gameIds, paginatedData);
+      await clipsStorage.storeClips(clipsToShow, gameIds, paginatedData);
       
-      setClips(paginatedData.clips);
+      setClips(clipsToShow);
       setHasMore(paginatedData.has_next);
       
       console.log('useClips: Clips loaded and set in state:', paginatedData.clips.length);
@@ -149,27 +174,19 @@ export const useClips = ({
     setHasMore(false);
   }, []);
 
-  // Auto-load on mount and when token becomes available
+  // Auto-load on mount (shows demo clips when no token / no game subs).
+  // Re-runs when token arrives so real clips replace the demos.
   useEffect(() => {
-    console.log('useClips: useEffect triggered', { 
-      autoLoad, 
-      isInitialized: isInitialized.current, 
-      hasToken: !!token 
-    });
-    if (autoLoad && !isInitialized.current && token) {
+    if (!autoLoad) return;
+    if (!isInitialized.current) {
       isInitialized.current = true;
-      console.log('useClips: Initializing and loading clips');
       loadClips();
+      return;
     }
-  }, [autoLoad, token]); // Include token in dependencies
-
-  // Also trigger load when token becomes available after initialization
-  useEffect(() => {
-    if (isInitialized.current && token && clips.length === 0) {
-      console.log('useClips: Token available but no clips, loading');
-      loadClips();
-    }
-  }, [token, clips.length]); // Watch for token changes and empty clips
+    // Token became available after initial load — reload with real data.
+    if (token) loadClips();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLoad, token]);
 
   return {
     clips,

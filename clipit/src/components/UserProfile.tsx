@@ -1,421 +1,149 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Platform, Linking } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  View, Text, ScrollView, Pressable, Image, StyleSheet, useWindowDimensions,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Screen from './Screen';
+import { useAuth } from '../context/AuthContext';
+import { getUser } from '../services/api';
+import preferences from '../services/preferences';
+import { CATEGORIES } from '../data/categories';
+import { colors, radii, font } from '../styles/theme';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const UserProfile = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const [activeTab, setActiveTab] = useState('content');
-  const { width } = Dimensions.get('window');
+export default function UserProfile() {
+  const navigation = useNavigation<any>();
+  const { user, token, logout, updateUser } = useAuth();
+  const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const handleBackToDashboard = () => {
-    navigation.navigate('Dashboard');
-  };
+  const [savedCount, setSavedCount] = useState(0);
+  const [upCount, setUpCount] = useState(0);
+  const [subs, setSubs] = useState<string[]>([]);
+  const [tab, setTab] = useState<'saved' | 'upvoted'>('saved');
 
-  const handleBackToLanding = () => {
-    navigation.navigate('Landing');
-  };
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        const [saved, votes, s] = await Promise.all([
+          preferences.getSavedClipIds(),
+          preferences.getVotes(),
+          preferences.getSubscribedGames(),
+        ]);
+        if (!active) return;
+        setSavedCount(saved.length);
+        setUpCount(Object.values(votes).filter((v) => v === 'up').length);
+        setSubs(s);
+        // Refresh user from backend if we have a token.
+        if (token) {
+          try {
+            const res = await getUser(token);
+            if (active && res?.data) updateUser(res.data);
+          } catch { /* keep cached user */ }
+        }
+      })();
+      return () => { active = false; };
+    }, [token]),
+  );
 
-  const handleSocialLink = (platform: string, url: string) => {
-    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
-  };
-
-  const socialLinks = [
-    { name: 'twitch', icon: 'twitch', color: '#9147ff', url: 'https://twitch.tv/johndoe' },
-    { name: 'youtube', icon: 'youtube', color: '#ff0000', url: 'https://youtube.com/@johndoe' },
-    { name: 'instagram', icon: 'instagram', color: '#e4405f', url: 'https://instagram.com/johndoe' },
-    { name: 'tiktok', icon: 'music-note', color: '#000000', url: 'https://tiktok.com/@johndoe' },
-  ];
-
-  const contentTabs = [
-    { id: 'content', title: 'Your Content', icon: 'video', iconActive: 'video' },
-    { id: 'fame', title: 'Hall of Fame', icon: 'crown-outline', iconActive: 'crown' },
-    { id: 'tagged', title: 'Tagged with', icon: 'share-outline', iconActive: 'share' },
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'content':
-        return (
-          <View style={styles.emptyContent}>
-            <MaterialCommunityIcons name="video-outline" size={64} color="#9ca3af" />
-            <Text style={styles.emptyContentTitle}>No content yet</Text>
-            <Text style={styles.emptyContentText}>Start creating and sharing your clips!</Text>
-          </View>
-        );
-      case 'fame':
-        return (
-          <View style={styles.emptyContent}>
-            <MaterialCommunityIcons name="crown-outline" size={64} color="#9ca3af" />
-            <Text style={styles.emptyContentTitle}>Hall of Fame</Text>
-            <Text style={styles.emptyContentText}>Your best clips will appear here</Text>
-          </View>
-        );
-      case 'tagged':
-        return (
-          <View style={styles.emptyContent}>
-            <MaterialCommunityIcons name="share-outline" size={64} color="#9ca3af" />
-            <Text style={styles.emptyContentTitle}>Tagged Content</Text>
-            <Text style={styles.emptyContentText}>Content you've been tagged in will show here</Text>
-          </View>
-        );
-      default:
-        return null;
-    }
-  };
+  const name = user?.display_name || user?.username || user?.login || 'ClipFlow User';
+  const handle = '@' + (user?.login || user?.twitch_username || user?.username || 'user');
+  const avatar = user?.twitch_avatar;
+  const favCats = CATEGORIES.filter((c) => subs.includes(c.game_id));
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Navigation */}
-      <View style={styles.headerNav}>
-        <TouchableOpacity onPress={handleBackToDashboard} style={styles.navButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerUsername}>@johndoe</Text>
-        <TouchableOpacity onPress={handleBackToLanding} style={styles.navButton}>
-          <MaterialCommunityIcons name="home" size={24} color="#111827" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Profile Summary Layout */}
-      <View style={styles.profileSection}>
-        <View style={[styles.profileContainer, isMobile && styles.profileContainerMobile]}>
-          {/* Profile Image */}
-          <View style={styles.profileImageContainer}>
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/150?img=1' }}
-              style={styles.profileImage}
-            />
-          </View>
-
-          {/* Profile Info */}
-          <View style={[styles.profileInfo, isMobile && styles.profileInfoMobile]}>
-            {/* Full Name */}
-            <Text style={styles.fullName}>John Doe</Text>
-            
-            {/* Bio */}
-            <Text style={styles.bio}>
-              🎮 Gaming enthusiast and content creator{'\n'}
-              🔥 Streaming daily on Twitch{'\n'}
-              📧 Contact: john@clipit.com
-            </Text>
-
-            {/* Stats */}
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>245</Text>
-                <Text style={styles.statLabel}>Posts</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>1.2K</Text>
-                <Text style={styles.statLabel}>Followers</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>850</Text>
-                <Text style={styles.statLabel}>Following</Text>
-              </View>
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.headerRow, isMobile && { flexDirection: 'column', alignItems: 'center' }]}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitials}>{name.slice(0, 2).toUpperCase()}</Text>
             </View>
+          )}
+          <View style={[styles.headerInfo, isMobile && { alignItems: 'center', marginTop: 14 }]}>
+            <Text style={styles.name}>{name}</Text>
+            <Text style={styles.handle}>{handle}</Text>
           </View>
+          <Pressable style={styles.logoutBtn} onPress={() => { logout(); navigation.navigate('Landing'); }}>
+            <MaterialCommunityIcons name="logout" size={16} color={colors.gray} />
+            <Text style={styles.logoutText}>Log out</Text>
+          </Pressable>
         </View>
 
-        {/* Social Links */}
-        <View style={styles.socialLinksContainer}>
-          <Text style={styles.socialLinksTitle}>Find me on:</Text>
-          <View style={styles.socialLinks}>
-            {socialLinks.map((social) => (
-              <TouchableOpacity
-                key={social.name}
-                style={[styles.socialButton, { borderColor: social.color }]}
-                onPress={() => handleSocialLink(social.name, social.url)}
-              >
-                <MaterialCommunityIcons
-                  name={social.icon as any}
-                  size={24}
-                  color={social.color}
-                />
-              </TouchableOpacity>
+        <View style={styles.stats}>
+          <Stat n={savedCount} label="Saved" />
+          <Stat n={upCount} label="Upvoted" />
+          <Stat n={favCats.length} label="Following" />
+        </View>
+
+        <Text style={styles.sectionLabel}>Favorite categories</Text>
+        {favCats.length === 0 ? (
+          <Text style={styles.muted}>No categories yet — subscribe in Discover.</Text>
+        ) : (
+          <View style={styles.chips}>
+            {favCats.map((c) => (
+              <Pressable key={c.game_id} style={styles.chip} onPress={() => navigation.navigate('Explore', { gameId: c.game_id })}>
+                <View style={[styles.chipDot, { backgroundColor: `hsl(${c.hue} 70% 64%)` }]} />
+                <Text style={styles.chipText}>{c.name}</Text>
+              </Pressable>
             ))}
           </View>
-        </View>
+        )}
 
-        {/* Profile Actions */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={[styles.button, styles.editButton]}>
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.shareButton]}>
-            <MaterialCommunityIcons name="share-outline" size={20} color="#9147ff" />
-            <Text style={styles.shareButtonText}>Share Profile</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Content Tabs */}
-      <View style={styles.tabsSection}>
-        <View style={styles.tabsContainer}>
-          {contentTabs.map((tab, index) => (
-            <View key={tab.id} style={styles.tabWrapper}>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === tab.id && styles.activeTab]}
-                onPress={() => setActiveTab(tab.id)}
-              >
-                <MaterialCommunityIcons
-                  name={activeTab === tab.id ? tab.iconActive as any : tab.icon as any}
-                  size={20}
-                  color={activeTab === tab.id ? '#9147ff' : '#6b7280'}
-                />
-                <Text style={[
-                  styles.tabText,
-                  activeTab === tab.id ? styles.tabTextActive : styles.tabTextInactive
-                ]}>
-                  {tab.title}
-                </Text>
-              </TouchableOpacity>
-              {index < contentTabs.length - 1 && <View style={styles.tabDivider} />}
-            </View>
+        <View style={styles.tabs}>
+          {(['saved', 'upvoted'] as const).map((t) => (
+            <Pressable key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.tabActive]}>
+              <Text style={[styles.tabText, { color: tab === t ? colors.white : colors.dim }]}>{t === 'saved' ? 'Saved' : 'Upvoted'}</Text>
+            </Pressable>
           ))}
         </View>
-
-        {/* Tab Content */}
-        <View style={styles.tabContent}>
-          {renderTabContent()}
-        </View>
-      </View>
-    </ScrollView>
+        <Pressable style={styles.viewBtn} onPress={() => navigation.navigate('Saved')}>
+          <MaterialCommunityIcons name="bookmark-multiple-outline" size={18} color={colors.electric} />
+          <Text style={styles.viewBtnText}>Open your saved clips</Text>
+        </Pressable>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </Screen>
   );
-};
+}
 
-const { width } = Dimensions.get('window');
-const isMobile = width < 768;
+function Stat({ n, label }: { n: number; label: string }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statNum}>{n}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  headerNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  navButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  headerUsername: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    letterSpacing: -0.5,
-  },
-  profileSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  profileContainerMobile: {
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  profileImageContainer: {
-    marginRight: isMobile ? 0 : 24,
-    marginBottom: isMobile ? 16 : 0,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#e5e7eb',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileInfoMobile: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  fullName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: isMobile ? 'center' : 'left',
-  },
-  bio: {
-    fontSize: 16,
-    color: '#4b5563',
-    lineHeight: 24,
-    marginBottom: 20,
-    textAlign: isMobile ? 'center' : 'left',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: isMobile ? 'center' : 'flex-start',
-    gap: 32,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  socialLinksContainer: {
-    marginBottom: 24,
-  },
-  socialLinksTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: isMobile ? 'center' : 'left',
-  },
-  socialLinks: {
-    flexDirection: 'row',
-    justifyContent: isMobile ? 'center' : 'flex-start',
-    gap: 12,
-  },
-  socialButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  editButton: {
-    backgroundColor: '#9147ff',
-  },
-  editButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  shareButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  shareButtonText: {
-    color: '#9147ff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  tabsSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-  },
-  tabWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#9147ff',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  tabTextActive: {
-    color: '#9147ff',
-  },
-  tabTextInactive: {
-    color: '#6b7280',
-  },
-  tabDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#e5e7eb',
-  },
-  tabContent: {
-    minHeight: 300,
-  },
-  emptyContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 24,
-  },
-  emptyContentTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyContentText: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+  content: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 18, paddingTop: 18 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  avatar: { width: 64, height: 64, borderRadius: 32 },
+  avatarFallback: { backgroundColor: colors.purple, justifyContent: 'center', alignItems: 'center' },
+  avatarInitials: { color: '#fff', fontSize: 22, fontWeight: font.weight.heavy },
+  headerInfo: { flex: 1 },
+  name: { fontSize: 20, fontWeight: font.weight.heavy, color: colors.white, letterSpacing: -0.3 },
+  handle: { fontSize: 13, color: colors.gray, marginTop: 1 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, borderRadius: radii.pill, paddingHorizontal: 13, paddingVertical: 8 },
+  logoutText: { fontSize: 12.5, fontWeight: font.weight.bold, color: colors.gray },
+  stats: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  stat: { flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.lg, paddingVertical: 14, alignItems: 'center' },
+  statNum: { fontSize: 19, fontWeight: font.weight.heavy, color: colors.white, fontFamily: font.mono as any },
+  statLabel: { fontSize: 11, color: colors.gray, marginTop: 3 },
+  sectionLabel: { fontSize: 12, fontWeight: font.weight.bold, letterSpacing: 0.6, textTransform: 'uppercase', color: colors.dim, marginTop: 22, marginBottom: 10 },
+  muted: { fontSize: 13, color: colors.gray },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, borderRadius: radii.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  chipDot: { width: 8, height: 8, borderRadius: 4 },
+  chipText: { fontSize: 12.5, fontWeight: font.weight.semibold, color: colors.white },
+  tabs: { flexDirection: 'row', gap: 22, marginTop: 24, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
+  tab: { paddingBottom: 9, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: colors.electric },
+  tabText: { fontSize: 14, fontWeight: font.weight.bold },
+  viewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.md, paddingVertical: 13 },
+  viewBtnText: { fontSize: 13.5, fontWeight: font.weight.bold, color: colors.electric },
 });
-
-export default UserProfile;

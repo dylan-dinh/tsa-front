@@ -1,189 +1,190 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clip } from '../types';
+import { colors, radii, font, fmtCount, fmtDuration } from '../styles/theme';
+import { getCategoryName, getCategoryHue, gradientFor } from '../data/categories';
+
+export type VoteState = 'up' | 'down' | null;
 
 interface ClipCardProps {
   clip: Clip;
-  onClick?: (clip: Clip) => void;
+  vote?: VoteState;
+  saved?: boolean;
+  onVote?: (dir: 'up' | 'down') => void;
+  onToggleSave?: () => void;
+  onShare?: () => void;
+  onOpen?: () => void;          // tap thumbnail -> open clip / play
+  onOpenTwitch?: () => void;    // "Twitch" pill -> open original
 }
 
-const { width } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
+// Twitch thumbnail URLs come templated (e.g. ..._preview-%{width}x%{height}.jpg)
+const normalizeThumb = (url?: string): string | undefined =>
+  url
+    ?.replace(/%?\{width\}/g, '480')
+    .replace(/%?\{height\}/g, '272');
 
-const ClipCard: React.FC<ClipCardProps> = ({ clip, onClick }) => {
+const initials = (name?: string) =>
+  (name || 'TW').replace('@', '').slice(0, 2).toUpperCase();
 
-  const formatDuration = (duration: number | undefined): string => {
-    if (!duration || duration === 0) return '0:00';
-    const minutes = Math.floor(duration / 60);
-    const seconds = Math.floor(duration % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const formatViewCount = (views: number | undefined): string => {
-    if (!views || views === 0) return '0';
-    if (views >= 1000000) {
-      return `${(views / 1000000).toFixed(1)}M`;
-    } else if (views >= 1000) {
-      return `${(views / 1000).toFixed(1)}K`;
-    }
-    return views.toString();
-  };
-
-  const handlePress = () => {
-    if (onClick) {
-      onClick(clip);
-    }
-  };
+function ClipCardImpl({
+  clip,
+  vote = null,
+  saved = false,
+  onVote,
+  onToggleSave,
+  onShare,
+  onOpen,
+  onOpenTwitch,
+}: ClipCardProps) {
+  const hue = getCategoryHue(clip.GameID);
+  const thumb = normalizeThumb(clip.ThumbnailURL);
+  const placeholder = Platform.OS === 'web' ? ({ backgroundImage: gradientFor(hue) } as any) : { backgroundColor: `hsl(${hue} 50% 18%)` };
+  const baseVotes = clip.ViewCount ? Math.round(clip.ViewCount / 40) : 0;
+  const voteDelta = vote === 'up' ? 1 : vote === 'down' ? -1 : 0;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.8}>
-      <View style={styles.thumbnail}>
-        {clip.thumbnail_url && (
-          <Image 
-            source={{ uri: clip.thumbnail_url }} 
-            style={styles.thumbnailImage}
-            resizeMode="cover"
-          />
-        )}
-        <View style={styles.overlay}>
-          <View style={styles.duration}>
-            <Text style={styles.durationText}>
-              {formatDuration(clip.duration)}
-            </Text>
+    <View style={styles.card}>
+      {/* Thumbnail */}
+      <Pressable style={styles.thumbWrap} onPress={onOpen}>
+        <View style={[styles.thumb, placeholder]}>
+          {thumb ? (
+            <Image source={{ uri: thumb }} style={styles.thumbImg} resizeMode="cover" />
+          ) : null}
+        </View>
+        <View style={styles.playBtn}>
+          <MaterialCommunityIcons name="play" size={28} color="#fff" />
+        </View>
+        <View style={styles.catChip}>
+          <View style={[styles.dot, { backgroundColor: `hsl(${hue} 70% 64%)` }]} />
+          <Text style={styles.catChipText} numberOfLines={1}>{getCategoryName(clip.GameID)}</Text>
+        </View>
+        {clip.Duration ? (
+          <View style={styles.durChip}>
+            <Text style={styles.durText}>{fmtDuration(clip.Duration)}</Text>
           </View>
-          <View style={styles.playButton}>
-            <Text style={styles.playButtonText}>▶</Text>
+        ) : null}
+        <View style={styles.viewsChip}>
+          <MaterialCommunityIcons name="eye" size={14} color={colors.white} />
+          <Text style={styles.viewsText}>{fmtCount(clip.ViewCount)}</Text>
+        </View>
+      </Pressable>
+
+      {/* Meta */}
+      <View style={styles.body}>
+        <View style={styles.streamerRow}>
+          <View style={[styles.avatar, { backgroundColor: `hsl(${hue} 60% 45%)` }]}>
+            <Text style={styles.avatarText}>{initials(clip.BroadcasterName)}</Text>
           </View>
+          <Text style={styles.streamerName} numberOfLines={1}>
+            {clip.BroadcasterName || 'Twitch streamer'}
+          </Text>
+        </View>
+
+        <Text style={styles.title} numberOfLines={2}>{clip.Title || 'Untitled clip'}</Text>
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <View style={styles.votePill}>
+            <Pressable onPress={() => onVote?.('up')} hitSlop={6} style={styles.voteBtn}>
+              <MaterialCommunityIcons name="chevron-up" size={22} color={vote === 'up' ? colors.electric : colors.dim} />
+            </Pressable>
+            <Text style={styles.voteCount}>{fmtCount(baseVotes + voteDelta)}</Text>
+            <Pressable onPress={() => onVote?.('down')} hitSlop={6} style={styles.voteBtn}>
+              <MaterialCommunityIcons name="chevron-down" size={22} color={vote === 'down' ? colors.purple : colors.dim} />
+            </Pressable>
+          </View>
+
+          <Pressable style={styles.pillBtn} onPress={onShare}>
+            <MaterialCommunityIcons name="comment-outline" size={17} color={colors.gray} />
+          </Pressable>
+
+          <View style={{ flex: 1 }} />
+
+          <Pressable style={styles.iconBtn} onPress={onToggleSave} hitSlop={6}>
+            <MaterialCommunityIcons
+              name={saved ? 'bookmark' : 'bookmark-outline'}
+              size={19}
+              color={saved ? colors.electric : colors.gray}
+            />
+          </Pressable>
+          <Pressable style={styles.iconBtn} onPress={onShare} hitSlop={6}>
+            <MaterialCommunityIcons name="share-outline" size={19} color={colors.gray} />
+          </Pressable>
+          <Pressable style={styles.twitchPill} onPress={onOpenTwitch}>
+            <MaterialCommunityIcons name="open-in-new" size={15} color={colors.electric} />
+            <Text style={styles.twitchPillText}>Twitch</Text>
+          </Pressable>
         </View>
       </View>
-      
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
-          {clip.title || 'Untitled Clip'}
-        </Text>
-        
-        <View style={styles.meta}>
-          <Text style={styles.creator}>
-            by {clip.creator_name || 'Unknown'}
-          </Text>
-          <Text style={styles.views}>
-            {formatViewCount(clip.view_count)} views
-          </Text>
-        </View>
-        
-        {clip.broadcaster_name && (
-          <View style={styles.broadcaster}>
-            <Text style={styles.broadcasterName}>
-              {clip.broadcaster_name}
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
+    </View>
   );
-};
+}
+
+export const ClipCard = memo(ClipCardImpl);
+export default ClipCard;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 16,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#e1e5e9',
+    borderColor: colors.cardBorder,
+    borderRadius: radii.xl,
     overflow: 'hidden',
   },
-  thumbnail: {
-    position: 'relative',
-    width: '100%',
-    height: isWeb ? 200 : 160,
-    backgroundColor: '#f8f9fa',
+  thumbWrap: { width: '100%', aspectRatio: 16 / 9, position: 'relative' },
+  thumb: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  thumbImg: { width: '100%', height: '100%' },
+  playBtn: {
+    position: 'absolute', top: '50%', left: '50%',
+    width: 54, height: 54, marginLeft: -27, marginTop: -27,
+    borderRadius: 27, backgroundColor: 'rgba(8,8,14,0.4)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
+  catChip: {
+    position: 'absolute', left: 10, top: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radii.pill,
+    backgroundColor: 'rgba(5,5,9,0.55)', maxWidth: '70%',
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 12,
-    opacity: 0,
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  catChipText: { fontSize: 11.5, fontWeight: font.weight.semibold, color: colors.white },
+  durChip: {
+    position: 'absolute', right: 10, bottom: 10,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7,
+    backgroundColor: 'rgba(5,5,9,0.72)',
   },
-  duration: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+  durText: { fontFamily: font.mono as any, fontSize: 11, color: colors.white },
+  viewsChip: { position: 'absolute', left: 10, bottom: 10, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  viewsText: { fontSize: 12, fontWeight: font.weight.semibold, color: colors.white },
+  body: { padding: 14 },
+  streamerRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  avatar: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 11, fontWeight: font.weight.bold, color: '#fff' },
+  streamerName: { fontSize: 13, fontWeight: font.weight.semibold, color: colors.white, flexShrink: 1 },
+  title: { marginTop: 9, fontSize: 15, fontWeight: font.weight.semibold, color: colors.white, lineHeight: 20 },
+  actions: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  votePill: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder,
+    borderRadius: radii.pill, paddingHorizontal: 4,
   },
-  durationText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+  voteBtn: { paddingVertical: 6, paddingHorizontal: 5 },
+  voteCount: { minWidth: 30, textAlign: 'center', fontSize: 12, fontWeight: font.weight.bold, color: colors.white, fontFamily: font.mono as any },
+  pillBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder,
+    borderRadius: radii.pill, paddingHorizontal: 12, paddingVertical: 8,
   },
-  playButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  iconBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder,
+    justifyContent: 'center', alignItems: 'center',
   },
-  playButtonText: {
-    color: '#9147ff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  twitchPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 12,
+    borderRadius: radii.pill, backgroundColor: colors.purpleSoft,
   },
-  info: {
-    padding: 16,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  meta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  creator: {
-    fontSize: 14,
-    color: '#9147ff',
-    fontWeight: '500',
-  },
-  views: {
-    fontSize: 14,
-    color: '#6c757d',
-  },
-  broadcaster: {
-    marginTop: 4,
-  },
-  broadcasterName: {
-    backgroundColor: '#f8f9fa',
-    color: '#495057',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 12,
-    fontWeight: '500',
-    alignSelf: 'flex-start',
-  },
+  twitchPillText: { fontSize: 12, fontWeight: font.weight.bold, color: colors.electric },
 });
-
-export default ClipCard; 
