@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Platform, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import { User } from '../types';
+import storage from '../services/storage';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -14,32 +14,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Storage utilities that work on all platforms
-const storage = {
-    async getItem(key: string): Promise<string | null> {
-        if (Platform.OS === 'web') {
-            return localStorage.getItem(key);
-        } else {
-            return await SecureStore.getItemAsync(key);
-        }
-    },
-    
-    async setItem(key: string, value: string): Promise<void> {
-        if (Platform.OS === 'web') {
-            localStorage.setItem(key, value);
-        } else {
-            await SecureStore.setItemAsync(key, value);
-        }
-    },
-    
-    async removeItem(key: string): Promise<void> {
-        if (Platform.OS === 'web') {
-            localStorage.removeItem(key);
-        } else {
-            await SecureStore.deleteItemAsync(key);
-        }
-    }
-};
+
 
 const LoadingScreen: React.FC = () => (
     <View style={styles.loadingContainer}>

@@ -2,6 +2,7 @@ export type RootStackParamList = {
   Landing: undefined;
   Login: undefined;
   Register: undefined;
-  Dashboard: undefined;
+  Main: undefined;
+  Explore: { gameId?: string; clipId?: string } | undefined;
   UserProfile: undefined;
 }; 

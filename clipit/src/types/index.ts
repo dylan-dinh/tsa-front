@@ -33,3 +33,38 @@ export interface User {
     message: string;
     token: string;
   }
+
+  export interface Clip {
+    ID: number;
+    TwitchID?: string;
+    BroadcasterID: number;
+    BroadcasterName?: string;
+    EmbedURL?: string;
+    GameID: string;
+    Language?: string;
+    Title?: string;
+    VideoID: number;
+    CreatorID: number;
+    CreatorName?: string;
+    ThumbnailURL?: string;
+    URL?: string;
+    ViewCount: number;
+    Duration: number;
+    CreatedAt: string;
+    UpdatedAt: string;
+  }
+
+  export interface PaginatedClipsResponse {
+  clips: Clip[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+export interface ClipsResponse {
+  message: string;
+  data: PaginatedClipsResponse;
+  }

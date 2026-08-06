@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
-import { RegisterResponse, Streamer, TwitchLoginResponse } from '../types';
+import { Clip, RegisterResponse, Streamer, TwitchLoginResponse, ClipsResponse } from '../types';
 import { User } from '../types/index';
+import storage from './storage';
 
 const API_URL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:8080") + "/api"
 
@@ -10,6 +11,44 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+api.interceptors.request.use(async (config) => {
+  if (!config.headers.Authorization) {
+    const token = await storage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+export const getClipSlug = (clip: Clip): string | null => {
+  const sources = [clip.EmbedURL, clip.URL];
+  for (const source of sources) {
+    if (!source) continue;
+    const embedMatch = source.match(/[?&]clip=([^&]+)/);
+    if (embedMatch) return decodeURIComponent(embedMatch[1]);
+    const pathMatch = source.match(/clips\.twitch\.tv\/([^/?&#]+)/);
+    if (pathMatch && pathMatch[1] !== 'embed') return pathMatch[1];
+  }
+  return clip.TwitchID || null;
+};
+
+export const getTwitchEmbedUrl = (
+  clip: Clip,
+  parent: string,
+  opts?: { autoplay?: boolean; muted?: boolean },
+): string | null => {
+  const slug = getClipSlug(clip);
+  if (!slug) return null;
+  const params = new URLSearchParams({
+    clip: slug,
+    parent,
+    autoplay: String(opts?.autoplay ?? false),
+    muted: String(opts?.muted ?? false),
+  });
+  return `https://clips.twitch.tv/embed?${params.toString()}`;
+};
 
 export const login = async (email: string, password: string) => {
   try {
@@ -83,5 +122,44 @@ export const removeStreamer = (token: string, streamerId: string): Promise<Axios
   api.delete(`/streamers/${streamerId}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
+
+export interface GameSubscription {
+  twitch_id: string;
+  name: string;
+  box_art_url: string;
+}
+
+export const getUserGames = (): Promise<AxiosResponse<{ games: GameSubscription[] }>> =>
+  api.get('/users/games');
+
+export const subscribeToGame = (
+  gameTwitchId: string,
+  meta?: { name?: string; box_art_url?: string },
+): Promise<AxiosResponse<{ message: string }>> =>
+  api.post(`/users/games/${gameTwitchId}`, meta ?? {});
+
+export const unsubscribeFromGame = (
+  gameTwitchId: string,
+): Promise<AxiosResponse<{ message: string }>> =>
+  api.delete(`/users/games/${gameTwitchId}`);
+
+export const getClips = (
+  gameIds: string[], 
+  token: string, 
+  page: number = 1, 
+  limit: number = 100
+): Promise<AxiosResponse<ClipsResponse>> => {
+  // Build query parameters for multiple game IDs and pagination
+  const params = new URLSearchParams();
+  gameIds.forEach(gameId => {
+    params.append('game_id', gameId);
+  });
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  
+  return api.get(`/users/clips?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+};
 
 export default api;

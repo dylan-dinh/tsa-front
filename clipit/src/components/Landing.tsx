@@ -1,397 +1,111 @@
-// Requirements to run this component:
-// npm install @expo/vector-icons react-icons
-//test git status
-
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, SafeAreaView, Platform } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LoginModal } from './Login';
 import { RegisterModal } from './Register';
-import SocialAuth from './SocialAuth';
-import TwitchAuthTester from './TwitchAuthTester';
 import OAuthCallback from './OAuthCallback';
 import GoogleIcon from './GoogleIcon';
 import { useModal } from '../context/ModalContext';
-import { useAuth } from '../context/AuthContext';
+import { initiateTwitchAuth } from '../services/api';
+import { colors, radii, font, shadow, gradients } from '../styles/theme';
 import { RootStackParamList } from '../types/navigation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Landing'>;
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface SocialAuthProps extends ModalProps {
-  provider: 'google' | 'twitch';
-}
+const brandGrad = Platform.OS === 'web' ? ({ backgroundImage: gradients.brandCss } as any) : { backgroundColor: colors.purple };
 
 const LandingPage = () => {
-  // Check for OAuth callback BEFORE any hooks
-  const shouldShowOAuthCallback = Platform.OS === 'web' ? (() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasCode = urlParams.get('code') !== null;
-    const hasToken = urlParams.get('token') !== null;
-    
-    // Also check if we're on a callback path or if the URL contains callback indicators
-    const isCallbackPath = window.location.pathname.includes('callback') || 
-                          window.location.pathname.includes('oauth') ||
-                          window.location.href.includes('code=') ||
-                          window.location.href.includes('twitch');
-    
-    console.log('OAuth Callback Detection:', {
-      hasCode,
-      hasToken,
-      isCallbackPath,
-      currentUrl: window.location.href,
-      pathname: window.location.pathname,
-      search: window.location.search
-    });
-    
-    // If we have a token parameter, definitely show OAuth callback
-    if (hasToken) {
-      console.log('Token parameter detected, showing OAuth callback');
-      return true;
-    }
-    
-    // If we have a code parameter, definitely show OAuth callback
-    if (hasCode) {
-      console.log('Code parameter detected, showing OAuth callback');
-      return true;
-    }
-    
-    // If we're on a callback path, show OAuth callback
-    if (isCallbackPath) {
-      console.log('Callback path detected, showing OAuth callback');
-      return true;
-    }
-    
-    // If we're on the backend URL, show OAuth callback
-    if (window.location.href.includes('localhost:8080') || window.location.href.includes('api/users/login/twitch')) {
-      console.log('Backend URL detected, showing OAuth callback');
-      return true;
-    }
-    
-    return false;
-  })() : false;
-
-  // If there's an OAuth callback, show the callback component immediately
-  if (shouldShowOAuthCallback) {
-    return <OAuthCallback />;
-  }
+  // Detect Twitch OAuth redirect (?code / ?token) before rendering the page.
+  const showCallback = Platform.OS === 'web' && (() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('code') !== null || p.get('token') !== null ||
+      window.location.pathname.includes('callback') || window.location.href.includes('code=');
+  })();
+  if (showCallback) return <OAuthCallback />;
 
   const navigation = useNavigation<NavigationProp>();
   const { isLoginModalOpen, isRegisterModalOpen, openLoginModal, openRegisterModal, closeLoginModal, closeRegisterModal } = useModal();
-  const { isAuthenticated } = useAuth();
-  const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState(false);
-  
-  const { width, height } = useMemo(() => Dimensions.get('window'), []);
-  const isMobile = useMemo(() => width < 768, [width]);
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 900;
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#fff',
-    },
-    content: {
-      flex: 1,
-      flexDirection: Platform.select({ web: 'row', default: 'column' }),
-    },
-    contentMobile: {
-      flexDirection: 'column',
-    },
-    logoSection: {
-      width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
-      height: Platform.select({ web: isMobile ? height * 0.3 : height, default: height * 0.3 }),
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-    },
-    logoSectionMobile: {
-      height: height * 0.3,
-    },
-    logo: {
-      width: '90%',
-      height: 200,
-      maxWidth: 400,
-    },
-    contentSection: {
-      width: Platform.select({ web: isMobile ? '100%' : '50%', default: '100%' }),
-      height: Platform.select({ web: isMobile ? height * 0.7 : height, default: height * 0.7 }),
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-    },
-    contentSectionMobile: {
-      height: height * 0.7,
-    },
-    contentContainer: {
-      width: '100%',
-      maxWidth: 400,
-    },
-    headline: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: '#000',
-      marginBottom: 20,
-      textAlign: 'left',
-    },
-    devButtons: {
-      width: '100%',
-      marginBottom: 20,
-      borderWidth: 1,
-      borderColor: '#e5e7eb',
-      borderRadius: 8,
-      padding: 16,
-      backgroundColor: '#f8f9fa',
-    },
-    devButton: {
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: '#e5e7eb',
-      marginBottom: 8,
-      ...Platform.select({
-        web: {
-          boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-        },
-      }),
-    },
-    devButtonText: {
-      color: '#9147ff',
-      fontSize: 14,
-      fontWeight: '600',
-      marginLeft: 8,
-    },
-    buttonContainer: {
-      width: '100%',
-      marginBottom: 20,
-    },
-    button: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 12,
-      paddingHorizontal: 24,
-      borderRadius: 8,
-      marginBottom: 12,
-      ...Platform.select({
-        web: {
-          boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-        },
-      }),
-    },
-    googleButton: {
-      backgroundColor: 'white',
-      borderWidth: 1,
-      borderColor: '#E5E7EB',
-    },
-    twitchButton: {
-      backgroundColor: '#9147ff',
-    },
-    googleButtonText: {
-      color: '#111827',
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 8,
-    },
-    twitchButtonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 8,
-    },
-    separator: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: 20,
-    },
-    separatorLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: '#E5E7EB',
-    },
-    separatorText: {
-      marginHorizontal: 10,
-      color: '#6B7280',
-      fontSize: 14,
-    },
-    createAccountButton: {
-      backgroundColor: '#9147ff',
-      marginBottom: 20,
-    },
-    createAccountButtonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    loginSection: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    loginText: {
-      color: '#6B7280',
-      fontSize: 14,
-      marginRight: 8,
-    },
-    loginButton: {
-      backgroundColor: 'transparent',
-      padding: 0,
-      margin: 0,
-      width: 'auto',
-    },
-    loginButtonText: {
-      color: '#9147ff',
-      fontSize: 14,
-      fontWeight: '600',
-    },
-  }), [isMobile, height]);
-
-  const handleGoogleSignUp = useCallback(() => {
-    setIsGoogleAuthOpen(true);
+  const handleTwitch = useCallback(() => {
+    if (Platform.OS === 'web') window.location.href = initiateTwitchAuth();
   }, []);
-
-  const handleCreateAccount = useCallback(() => {
-    openRegisterModal();
-  }, [openRegisterModal]);
-
-  const handleLogin = useCallback(() => {
-    openLoginModal();
-  }, [openLoginModal]);
-
-  const handleDashboardNavigation = useCallback(() => {
-    navigation.navigate('Dashboard');
-  }, [navigation]);
-
-  const handleUserProfileNavigation = useCallback(() => {
-    navigation.navigate('UserProfile');
-  }, [navigation]);
-
-  const handleCloseGoogleAuth = useCallback(() => {
-    setIsGoogleAuthOpen(false);
-  }, []);
-
-
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={[styles.content, isMobile && styles.contentMobile]}>
-        {/* Logo Section */}
-        <View style={[styles.logoSection, isMobile && styles.logoSectionMobile]}>
-          <Image
-            source={require('../../assets/ClipIt_logo.jpeg')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+    <View style={styles.container}>
+      <View style={[styles.inner, { maxWidth: isDesktop ? 460 : 420 }]}>
+        <View style={styles.hero}>
+          <View style={[styles.logoMark, brandGrad]}>
+            <MaterialCommunityIcons name="play" size={44} color="#fff" />
+          </View>
+          <Text style={styles.wordmark}>ClipFlow</Text>
+          <Text style={styles.tagline}>The best moments from Twitch, in one endless feed.</Text>
         </View>
 
-        {/* Content Section */}
-        <View style={[styles.contentSection, isMobile && styles.contentSectionMobile]}>
-          <View style={styles.contentContainer}>
-            {/* Headline */}
-            <Text style={styles.headline}>
-              Share your best. Connect with the rest.
-            </Text>
+        <View style={styles.actions}>
+          <TouchableOpacity style={[styles.btn, brandGrad, shadow(1)]} onPress={handleTwitch}>
+            <MaterialCommunityIcons name="twitch" size={20} color="#fff" />
+            <Text style={styles.btnTextPrimary}>Continue with Twitch</Text>
+          </TouchableOpacity>
 
-            {/* Navigation Buttons for Testing */}
-            <View style={styles.devButtons}>
-              <TouchableOpacity
-                onPress={handleDashboardNavigation}
-                style={[styles.button, styles.devButton]}
-              >
-                <MaterialCommunityIcons name="view-dashboard" size={22} color="#9147ff" />
-                <Text style={styles.devButtonText}>Go to Dashboard</Text>
-              </TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={openLoginModal}>
+            <GoogleIcon size={20} />
+            <Text style={styles.btnTextGhost}>Continue with Google</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleUserProfileNavigation}
-                style={[styles.button, styles.devButton]}
-              >
-                <MaterialCommunityIcons name="account" size={22} color="#9147ff" />
-                <Text style={styles.devButtonText}>Go to Profile</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Twitch Auth Tester */}
-            <TwitchAuthTester />
-
-            {/* Sign Up Buttons */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                onPress={handleGoogleSignUp}
-                style={[styles.button, styles.googleButton]}
-              >
-                <GoogleIcon size={22} />
-                <Text style={styles.googleButtonText}>Sign up with Google</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* OR Separator */}
-            <View style={styles.separator}>
-              <View style={styles.separatorLine} />
-              <Text style={styles.separatorText}>OR</Text>
-              <View style={styles.separatorLine} />
-            </View>
-
-            {/* Create Account Button */}
-            <TouchableOpacity
-              onPress={handleCreateAccount}
-              style={[styles.button, styles.createAccountButton]}
-            >
-              <Text style={styles.createAccountButtonText}>Create an account</Text>
-            </TouchableOpacity>
-
-            {/* Login Section */}
-            <View style={styles.loginSection}>
-              <Text style={styles.loginText}>Already signed in?</Text>
-              <TouchableOpacity
-                onPress={handleLogin}
-                style={[styles.button, styles.loginButton]}
-              >
-                <Text style={styles.loginButtonText}>Login</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.sep}>
+            <View style={styles.sepLine} />
+            <Text style={styles.sepText}>OR</Text>
+            <View style={styles.sepLine} />
           </View>
+
+          <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={openLoginModal}>
+            <Text style={styles.btnTextGhost}>Log in with email</Text>
+          </TouchableOpacity>
+
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>New to ClipFlow?</Text>
+            <TouchableOpacity onPress={openRegisterModal}>
+              <Text style={styles.signupLink}>Create account</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Dev shortcut — app is open in dev mode */}
+          <TouchableOpacity style={styles.devLink} onPress={() => navigation.navigate('Main' as never)}>
+            <Text style={styles.devLinkText}>Skip → enter app (dev)</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Modals */}
-      {isLoginModalOpen && (
-        <LoginModal 
-          isOpen={isLoginModalOpen} 
-          onClose={closeLoginModal} 
-        />
-      )}
-      {isRegisterModalOpen && (
-        <RegisterModal 
-          isOpen={isRegisterModalOpen} 
-          onClose={closeRegisterModal} 
-        />
-      )}
-      {isGoogleAuthOpen && (
-        <SocialAuth 
-          isOpen={isGoogleAuthOpen} 
-          onClose={handleCloseGoogleAuth} 
-          provider="google" 
-        />
-      )}
-    </SafeAreaView>
+      {isLoginModalOpen && <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />}
+      {isRegisterModalOpen && <RegisterModal isOpen={isRegisterModalOpen} onClose={closeRegisterModal} />}
+    </View>
   );
 };
 
 export default LandingPage;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  inner: { width: '100%' },
+  hero: { alignItems: 'center', marginBottom: 40 },
+  logoMark: { width: 76, height: 76, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
+  wordmark: { fontSize: 31, fontWeight: font.weight.heavy, color: colors.white, letterSpacing: -0.6 },
+  tagline: { marginTop: 9, fontSize: 14.5, color: colors.gray, textAlign: 'center', lineHeight: 21, maxWidth: 260 },
+  actions: { width: '100%' },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 15, borderRadius: 15, marginBottom: 11 },
+  btnGhost: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.hairline },
+  btnTextPrimary: { color: '#fff', fontSize: 15, fontWeight: font.weight.bold },
+  btnTextGhost: { color: colors.white, fontSize: 15, fontWeight: font.weight.semibold },
+  sep: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 6 },
+  sepLine: { flex: 1, height: 1, backgroundColor: colors.hairline },
+  sepText: { fontSize: 11, fontWeight: font.weight.semibold, color: colors.dim },
+  signupRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 16 },
+  signupText: { fontSize: 13.5, color: colors.gray },
+  signupLink: { fontSize: 13.5, color: colors.electric, fontWeight: font.weight.bold },
+  devLink: { marginTop: 24, alignItems: 'center' },
+  devLinkText: { fontSize: 12, color: colors.dim, fontWeight: font.weight.semibold },
+});
